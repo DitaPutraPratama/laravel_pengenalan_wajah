@@ -25,3 +25,12 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Vercel CLI link (created by `vercel link`)
+/.vercel
+
+# Local-only: agent instructions and working logs
+/CLAUDE.md
+/.claude
+/docs/TASKS.md
+/docs/PROGRESS.md

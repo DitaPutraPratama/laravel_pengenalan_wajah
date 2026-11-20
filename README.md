@@ -127,7 +127,6 @@ Data wajah termasuk data pribadi sensitif menurut UU PDP. Proyek ini hanya menyi
 - `docs/DATABASE.md`: skema
 - `docs/DESIGN.md`: layar, teks, token desain
 - `docs/DECISIONS.md`: alasan keputusan teknis (ADR)
-- `docs/TASKS.md`, `docs/PROGRESS.md`: tugas dan status
 
 ## Kredit
 Proyek ini dibangun di atas karya berikut:
