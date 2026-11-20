@@ -33,6 +33,8 @@ Halaman yang tersedia:
 
 Buka lewat `localhost`, bukan lewat IP LAN. Kalau dibuka lewat IP LAN, browser memblokir kamera karena koneksinya bukan HTTPS.
 
+Kalau muncul error "No application encryption key" padahal `.env` sudah benar, cek apakah ada file `.env.local`. `vercel link` dan `vercel env pull` membuat file itu, dan Laravel memuatnya menggantikan `.env` saat `APP_ENV=local`. Hapus file itu, lalu jalankan ulang `composer dev`.
+
 ## Cara kerja
 1. Browser meminta sesi ke `POST /api/face/sessions`. Server membuat token sekali pakai dan urutan tiga gerakan yang diacak.
 2. Browser memuat [Human](https://github.com/vladmandic/human), memastikan wajah ada di lingkaran, lalu meminta pengguna melakukan gerakan sesuai urutan dari server.
