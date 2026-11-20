@@ -141,3 +141,16 @@ Status: Diterima / Diterima, menunggu verifikasi / Digantikan.
 - **Keputusan:** Laravel 13 dengan PHP ≥ 8.3. Dev dependency: `pestphp/pest` + `pestphp/pest-plugin-laravel` (test PHP), `vitest` (test JS), `eslint` + `@eslint/js` + `globals` (lint JS). Pint memakai preset `laravel` + `declare_strict_types`. Tailwind dan font Bunny dihapus. Token warna dari `docs/DESIGN.md` ditulis sebagai CSS variable di `resources/css/app.css`.
 - **Alternatif:** PHPUnit murni (bawaan), Tailwind. Tailwind tidak dipilih karena DESIGN.md hanya butuh beberapa token dan melarang font eksternal.
 - **Konsekuensi:** Jika `vercel-php@0.9.0` tidak menyediakan PHP ≥ 8.3, turunkan ke Laravel 12 di T-003 dan ganti ADR ini.
+
+## ADR-018 — Hasil spike Human dan penyederhanaan implementasi v1
+- **Tanggal:** 2026-11-20
+- **Status:** Diterima, menunggu uji perangkat nyata (T-004)
+- **Konteks:** Fitur Must dikerjakan di lokal sebelum spike T-003/T-004 selesai. Beberapa nilai perlu ditetapkan agar kode bisa jalan.
+- **Keputusan:**
+  - `@vladmandic/human` 3.3.6 (MIT), dibundel lewat Vite dan dimuat lazy hanya di halaman kamera. Model dari `https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/models/` (`FACE_MODEL_URL`). Embedding dari model `faceres`, 1024 dimensi (`FACE_EMBEDDING_DIM=1024`, `FACE_MODEL_VERSION=human-3.3.6-faceres`).
+  - EAR dihitung dari mesh 468 titik (indeks MediaPipe). Besar yaw dari `face.rotation.angle.yaw` Human. Arah yaw ditentukan dari posisi hidung terhadap titik tengah sudut mata pada frame mentah, karena konvensi tanda Human tidak terdokumentasi.
+  - `FACE_MATCH_THRESHOLD=0.9` sementara `[ASUMSI]`. Embedding `faceres` hasil average pooling sehingga cosine antar-wajah cenderung tinggi. `FACE_LOG_SIMILARITY=true` (hanya lokal) menulis skor tertinggi ke log untuk kalibrasi. Skor tetap tidak pernah dikirim ke klien.
+  - CSP: `script-src 'self' 'nonce-…' 'wasm-unsafe-eval'`, `connect-src 'self'` + origin `FACE_MODEL_URL` (+ server Vite saat `composer dev`), `style-src 'unsafe-inline'` (dibutuhkan Vite dev). Lolos smoke test Chromium tanpa pelanggaran.
+  - Penyederhanaan dibanding `docs/ARCHITECTURE.md`: JS digabung jadi `geometry.js`, `liveness.js`, `scanner.js`, `api.js`, `main.js`. Halaman memakai `Route::view` (tanpa `PageController`). Kode hapus dicari lewat hash di index unik, jadi `hash_equals` tidak dipakai. Tabel `users`, `password_reset_tokens`, dan `jobs` bawaan dihapus (ADR-002, DATABASE.md).
+- **Alternatif:** Memuat Human dari CDN lewat `<script>` (CSP lebih longgar, tanpa bundling), atau memakai fungsi `human.match` bawaan (metrik non-cosine, tidak cocok dengan pencocokan di PHP).
+- **Konsekuensi:** Threshold harus dikalibrasi dengan wajah nyata sebelum demo dipakai (T-034). Arah toleh dan ambang EAR perlu dicek di perangkat nyata (T-004).
