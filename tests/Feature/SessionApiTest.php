@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\LivenessSession;
 
 it('creates a session with a random token, shuffled challenges and a 120 s TTL', function () {
+    $this->freezeSecond();
     $res = $this->postJson('/api/face/sessions', ['purpose' => 'enroll'])->assertCreated();
 
     $token = $res->json('data.session_token');

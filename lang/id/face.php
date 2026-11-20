@@ -5,10 +5,15 @@ declare(strict_types=1);
 // All UI text (docs/DESIGN.md). Keys under "js" are passed to the browser as JSON.
 return [
     'nav' => [
-        'home' => 'Beranda',
+        'label' => 'Menu utama',
         'enroll' => 'Daftar',
         'check' => 'Cek',
         'delete' => 'Hapus',
+    ],
+
+    'theme' => [
+        // Toggle button with aria-pressed: pressed = dark theme on.
+        'toggle' => 'Tema gelap',
     ],
 
     'footer' => [
@@ -21,16 +26,20 @@ return [
         'intro' => 'Daftarkan wajah Anda sekali, cek apakah wajah sudah terdaftar, atau hapus data wajah Anda.',
         'how' => 'Pemindaian berjalan di browser Anda. Foto tidak pernah dikirim atau disimpan.',
         'enroll' => 'Daftarkan wajah',
+        'enroll_desc' => 'Pindai wajah sekali dengan kamera. Setelah itu Anda mendapat kode hapus.',
         'check' => 'Cek wajah',
+        'check_desc' => 'Cari tahu apakah wajah Anda sudah ada di data kami.',
         'delete' => 'Hapus data wajah',
+        'delete_desc' => 'Hapus pola wajah Anda dengan kode hapus yang Anda simpan.',
     ],
 
     'enroll' => [
         'title' => 'Daftarkan wajah',
+        'description' => 'Butuh sekitar satu menit: setujui penyimpanan, lalu ikuti tiga gerakan di depan kamera.',
         // TODO: final consent text after legal review (UU PDP, T-038). Bump FACE_CONSENT_VERSION when it changes.
-        'consent_text' => 'Kami menyimpan pola wajah Anda dalam bentuk angka, bukan foto. Data ini dipakai untuk mencegah satu wajah terdaftar dua kali. Anda bisa menghapusnya kapan saja dengan kode hapus atau pindai wajah.',
+        'consent_text' => 'Kami menyimpan pola wajah Anda dalam bentuk angka, bukan foto. Data ini dipakai untuk mencegah satu wajah terdaftar dua kali. Anda bisa menghapusnya kapan saja dengan kode hapus.',
         'consent_label' => 'Saya setuju pola wajah saya disimpan untuk keperluan di atas.',
-        'start' => 'Mulai',
+        'start' => 'Mulai pindai wajah',
         'success_title' => 'Pendaftaran berhasil',
         'success_text' => 'Simpan kode hapus ini. Kode hanya ditampilkan sekali dan tidak bisa dilihat lagi.',
         'copy' => 'Salin kode',
@@ -42,7 +51,7 @@ return [
     'check' => [
         'title' => 'Cek wajah',
         'intro' => 'Pindai wajah Anda untuk mengetahui apakah wajah ini sudah terdaftar.',
-        'start' => 'Mulai',
+        'start' => 'Mulai pindai wajah',
         'registered' => 'Wajah ini sudah terdaftar.',
         'not_registered' => 'Wajah ini belum terdaftar.',
         'go_delete' => 'Hapus data wajah',
@@ -96,7 +105,8 @@ return [
             'session_invalid' => 'Sesi pemindaian berakhir. Mulai lagi.',
             'liveness_failed' => 'Pemeriksaan gerakan belum berhasil. Coba lagi dan ikuti instruksi dengan perlahan.',
             'face_already_registered' => 'Wajah ini sudah terdaftar.',
-            'delete_code_invalid' => 'Kode tidak ditemukan. Periksa lagi, atau hapus lewat pindai wajah.',
+            // Add "atau hapus lewat pindai wajah" once F-08 exists (T-032).
+            'delete_code_invalid' => 'Kode tidak ditemukan. Periksa lagi huruf dan angkanya, lalu coba lagi.',
             'face_not_found' => 'Wajah ini tidak ditemukan di data kami.',
             'capacity_reached' => 'Pendaftaran sedang ditutup karena kuota demo penuh.',
             'rate_limited' => 'Terlalu banyak percobaan. Coba lagi dalam {n} detik.',

@@ -95,27 +95,29 @@ flowchart TD
 - Footer: kalimat privasi singkat dan tautan kebijakan privasi (`TODO:` isi setelah review hukum).
 - Setelah tantangan gagal, pengguna kembali ke tahap "Posisi wajah" dengan sesi baru. Tidak ada kembali ke persetujuan.
 
-## 5. Design tokens `[REKOMENDASI]`
-Tidak ada ketentuan dari pemilik, jadi ini nilai awal yang netral dan mudah diubah.
+## 5. Design tokens
+Arahan pemilik (2026-11-20): gaya netral seperti shadcn/ui, ditulis sendiri tanpa mengambil komponen shadcn. Palet zinc, primer hampir hitam. Satu-satunya aksen warna adalah cincin hijau saat posisi wajah benar. Dial: ENERGY 1 / RHYTHM 1 / MOTION 1. Nilai ada di `resources/css/app.css`.
 
-| Token | Nilai | Keterangan |
-|---|---|---|
-| `--color-text` | `#1c1917` | Teks utama |
-| `--color-bg` | `#ffffff` | Latar |
-| `--color-surface` | `#f5f5f4` | Kotak, kolom input |
-| `--color-border` | `#d6d3d1` | Garis |
-| `--color-accent` | `#1d4ed8` | Tombol utama dan tautan |
-| `--color-success` | `#15803d` | Lingkaran saat posisi benar, pesan sukses |
-| `--color-danger` | `#b91c1c` | Error, tombol hapus |
-| `--color-light-red/blue/green` | `#dc2626` / `#2563eb` / `#16a34a` | Hanya untuk efek cahaya (F-04) |
-| Font | `system-ui, sans-serif` | Tanpa font eksternal |
-| Ukuran teks | 16px dasar, instruksi tantangan 24px tebal, `line-height` 1,5 | |
-| Spasi | skala 4, 8, 16, 24, 32 px | |
-| Radius | 8 px | |
-| Tinggi tombol | minimal 48 px | Target sentuh |
-| Diameter lingkaran | `min(80vw, 320px)`, mode landscape `min(60vh, 320px)` | |
+| Token | Terang | Gelap | Keterangan |
+|---|---|---|---|
+| `--background` / `--foreground` | `#ffffff` / `#09090b` | `#09090b` / `#fafafa` | Latar dan teks utama |
+| `--card` | `#ffffff` | `#0c0c0f` | Kartu halaman tugas (≥ 640 px) dan kartu beranda |
+| `--muted` / `--muted-foreground` | `#f4f4f5` / `#71717a` | `#27272a` / `#a1a1aa` | Permukaan sekunder, teks pendukung. Teks muted tidak dipakai di atas `--muted` (4,4:1 di mode terang) |
+| `--border` | `#e4e4e7` | `#27272a` | Garis kartu dan pemisah |
+| `--control` | `#8a8a94` | `#6b6b76` | Tepi input, tombol outline, lingkaran kamera (≥ 3:1, WCAG 1.4.11) |
+| `--primary` / `--primary-foreground` | `#18181b` / `#fafafa` | `#fafafa` / `#18181b` | Tombol utama |
+| `--destructive` / `--destructive-text` | `#dc2626` / `#b91c1c` | `#dc2626` / `#f87171` | Tombol hapus, kotak error |
+| `--success` | `#15803d` | `#4ade80` | Cincin kamera saat posisi benar |
+| `--light-red/blue/green` | `#dc2626` / `#2563eb` / `#16a34a` | sama | Hanya untuk efek cahaya (F-04) |
+| Font | `system-ui` | | Tanpa font eksternal |
+| Ukuran teks | 16 px dasar, label/tombol 14 px, judul `clamp(24px, 4vw, 30px)`, instruksi `clamp(20px, 5vw, 24px)` | | |
+| Radius | 6 px (tombol, input), 8 px (kartu kecil, alert), 12 px (kartu halaman) | | |
+| Tinggi tombol dan input | minimal 44 px | | Target sentuh |
+| Diameter lingkaran | `min(80vw, 320px)`, landscape pendek `min(55vh, 320px)` | | |
 
-Kontras teks dan tombol minimal WCAG AA (4,5:1).
+Tema: mengikuti sistem sampai pengguna menekan tombol tema di header, lalu pilihan disimpan di `localStorage` (hanya tema, tidak ada data lain).
+
+Kontras teks dan tombol minimal WCAG AA (4,5:1), dicek untuk kedua tema.
 
 ## 6. Komponen reusable
 | Komponen | Fungsi | Dipakai di |
@@ -137,7 +139,11 @@ Kontras teks dan tombol minimal WCAG AA (4,5:1).
 - Efek hanya tampilan. Tidak ada analisis pantulan dan tidak mempengaruhi hasil.
 
 ## 8. Responsif dan aksesibilitas
-- **Mobile-first.** Satu kolom, lebar konten maksimal 480 px dan di tengah pada layar lebar. Tidak ada layout dua kolom.
+- **Mobile-first, tiga rentang lebar.**
+  - HP (< 640 px): satu kolom tanpa bingkai kartu, margin 16 px. Header dua baris: nama dan tombol tema di atas, tiga tautan sama lebar di bawah.
+  - Tablet (640–767 px): halaman tugas menjadi kartu di tengah (maks. 520 px). Beranda masih satu kolom.
+  - Desktop (≥ 768 px): beranda menampilkan tiga kartu tugas dalam satu baris (maks. 960 px). Halaman tugas (enroll, cek, hapus) tetap satu kolom karena alurnya berurutan.
+  - Header satu baris mulai 520 px.
 - Layar kecil (≤ 360 px) dan orientasi landscape tetap menampilkan lingkaran dan instruksi tanpa scroll.
 - **Instruksi teks** selalu tampil untuk setiap tantangan, tidak hanya panah atau warna.
 - `aria-live="polite"` untuk `InstructionText` dan `AlertBox`. Fokus pindah ke `AlertBox` saat muncul error.

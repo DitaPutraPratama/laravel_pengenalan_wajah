@@ -37,9 +37,9 @@ function alertBox(text, actions = [], retryAfter = 0) {
     const label = $('[data-alert-text]');
     const holder = $('[data-alert-actions]');
     holder.replaceChildren(
-        ...actions.map(({ label: name, onClick, href }) => {
+        ...actions.map(({ label: name, onClick, href }, index) => {
             const el = document.createElement(href ? 'a' : 'button');
-            el.className = 'button';
+            el.className = index === 0 ? 'button' : 'button outline';
             el.textContent = name;
             if (href) el.href = href;
             else {
@@ -190,7 +190,31 @@ function deletePage(cfg, msg) {
     });
 }
 
+/** Header toggle: flips light/dark and remembers the choice (the head script applies it on load). */
+function themeToggle() {
+    const button = document.querySelector('[data-theme-toggle]');
+    if (!button) return;
+    const html = document.documentElement;
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
+    const current = () => html.dataset.theme ?? (systemDark.matches ? 'dark' : 'light');
+    const sync = () => button.setAttribute('aria-pressed', String(current() === 'dark'));
+
+    button.addEventListener('click', () => {
+        html.dataset.theme = current() === 'dark' ? 'light' : 'dark';
+        try {
+            localStorage.setItem('theme', html.dataset.theme);
+        } catch {
+            /* private mode: the choice lasts until the page closes */
+        }
+        sync();
+    });
+    systemDark.addEventListener('change', sync);
+    sync();
+}
+
 // --- boot (last, so every helper above is initialized) ----------------------------
+
+themeToggle();
 
 if (root) {
     const d = root.dataset;
