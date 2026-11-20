@@ -7,7 +7,6 @@ namespace Database\Factories;
 use App\Models\FaceTemplate;
 use App\Services\Face\EmbeddingCodec;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 
 /**
  * Synthetic random vectors only. Never put real face data in fixtures.
@@ -22,7 +21,6 @@ class FaceTemplateFactory extends Factory
             'embedding' => $this->encrypt(self::randomVector((int) config('face.embedding_dim'))),
             'embedding_dim' => (int) config('face.embedding_dim'),
             'model_version' => config('face.model_version'),
-            'delete_code_hash' => hash('sha256', Str::random(40)),
             'consent_version' => config('face.consent_version'),
         ];
     }

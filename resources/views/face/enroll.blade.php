@@ -21,18 +21,5 @@
 
         @include('face.partials.scanner')
         @include('face.partials.alert')
-
-        <section data-section="success" hidden>
-            <h2 tabindex="-1" data-success-title>{{ __('face.enroll.success_title') }}</h2>
-            <p>{{ __('face.enroll.success_text') }}</p>
-            <p class="code" data-code></p>
-            <button type="button" class="button outline" data-copy>{{ __('face.enroll.copy') }}</button>
-            <p class="muted" data-copied data-text="{{ __('face.enroll.copied') }}" aria-live="polite"></p>
-            <label class="check">
-                <input type="checkbox" data-saved>
-                <span>{{ __('face.enroll.saved_label') }}</span>
-            </label>
-            <a class="button" href="{{ route('face.home') }}" data-done aria-disabled="true">{{ __('face.enroll.done') }}</a>
-        </section>
     </div>
 @endsection

@@ -11,7 +11,6 @@ enum FaceErrorCode: string
     case SessionInvalid = 'session_invalid';
     case LivenessFailed = 'liveness_failed';
     case FaceAlreadyRegistered = 'face_already_registered';
-    case DeleteCodeInvalid = 'delete_code_invalid';
     case FaceNotFound = 'face_not_found';
     case CapacityReached = 'capacity_reached';
     case RateLimited = 'rate_limited';
@@ -22,7 +21,7 @@ enum FaceErrorCode: string
         return match ($this) {
             self::ValidationFailed, self::ConsentRequired, self::SessionInvalid, self::LivenessFailed => 422,
             self::FaceAlreadyRegistered => 409,
-            self::DeleteCodeInvalid, self::FaceNotFound => 404,
+            self::FaceNotFound => 404,
             self::CapacityReached => 503,
             self::RateLimited => 429,
             self::ServerError => 500,
@@ -38,7 +37,6 @@ enum FaceErrorCode: string
             self::SessionInvalid => 'The liveness session is invalid, expired, or already used.',
             self::LivenessFailed => 'Liveness telemetry did not pass validation.',
             self::FaceAlreadyRegistered => 'This face is already registered.',
-            self::DeleteCodeInvalid => 'The delete code is invalid.',
             self::FaceNotFound => 'No matching face was found.',
             self::CapacityReached => 'The template limit has been reached.',
             self::RateLimited => 'Too many requests.',

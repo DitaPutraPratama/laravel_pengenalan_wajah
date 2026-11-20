@@ -10,15 +10,15 @@ function enrollPayload(array $embedding, array $overrides = []): array
     return array_replace(scanPayload('enroll', $embedding), ['consent' => true, 'consent_version' => '1.0'], $overrides);
 }
 
-it('enrolls a face and returns a delete code once', function () {
-    $res = $this->postJson('/api/face/enroll', enrollPayload(FaceTemplateFactory::randomVector(8)))->assertCreated();
+it('enrolls a face and signs the new account in', function () {
+    $this->postJson('/api/face/enroll', enrollPayload(FaceTemplateFactory::randomVector(8)))
+        ->assertCreated()
+        ->assertExactJson(['data' => ['redirect' => route('face.dashboard')]]);
 
-    $code = $res->json('data.delete_code');
     $row = FaceTemplate::query()->sole();
-    expect($code)->toMatch('/^[A-Z2-7]{26}$/')
-        ->and($res->json('data'))->toHaveKeys(['delete_code'])->toHaveCount(1)
-        ->and($row->delete_code_hash)->toBe(hash('sha256', $code))
-        ->and($row->embedding_dim)->toBe(8)
+    $this->assertAuthenticatedAs($row);
+    expect($row->embedding_dim)->toBe(8)
+        ->and($row->name)->toBeNull()
         ->and($row->model_version)->toBe('test-v1')
         ->and($row->consent_version)->toBe('1.0')
         ->and($row->external_ref)->toBeNull();
@@ -38,6 +38,7 @@ it('rejects a face that is already registered without leaking a score', function
         ->assertStatus(409)
         ->assertJsonPath('error.code', 'face_already_registered');
 
+    $this->assertGuest();
     expect(FaceTemplate::query()->count())->toBe(1)
         ->and($res->getContent())->not->toContain('similar')->not->toContain('score');
 });
@@ -88,8 +89,8 @@ it('rejects an unknown, reused or wrong-purpose session', function () {
     $this->postJson('/api/face/enroll', $payload)->assertStatus(422)->assertJsonPath('error.code', 'session_invalid');
 
     // wrong purpose
-    $identify = scanPayload('identify', FaceTemplateFactory::randomVector(8));
-    $this->postJson('/api/face/enroll', $identify + ['consent' => true, 'consent_version' => '1.0'])
+    $login = scanPayload('login', FaceTemplateFactory::randomVector(8));
+    $this->postJson('/api/face/enroll', $login + ['consent' => true, 'consent_version' => '1.0'])
         ->assertStatus(422)->assertJsonPath('error.code', 'session_invalid');
 });
 

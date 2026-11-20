@@ -18,8 +18,7 @@ it('rate limits each endpoint with a standard 429', function (string $uri, array
 })->with([
     'sessions' => ['/api/face/sessions', ['purpose' => 'enroll'], 20],
     'enroll' => ['/api/face/enroll', [], 5],
-    'identify' => ['/api/face/identify', [], 10],
-    'delete' => ['/api/face/delete/code', ['delete_code' => 'X'], 5],
+    'login' => ['/api/face/login', [], 10],
 ]);
 
 it('answers server_error and names the missing variable when config is empty', function () {

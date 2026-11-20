@@ -7,6 +7,5 @@ namespace App\Enums;
 enum LivenessPurpose: string
 {
     case Enroll = 'enroll';
-    case Identify = 'identify';
-    case Delete = 'delete';
+    case Login = 'login';
 }

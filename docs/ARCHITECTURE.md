@@ -43,15 +43,16 @@ face-registry/
 │   ├── Enums/                      # LivenessPurpose, ChallengeType, FaceErrorCode
 │   ├── Exceptions/Face/            # FaceException (membawa FaceErrorCode)
 │   ├── Http/
-│   │   ├── Controllers/Face/       # PageController, SessionController, EnrollController,
-│   │   │                           # IdentifyController, DeleteController (tipis)
+│   │   ├── Controllers/Face/       # SessionController, EnrollController, LoginController,
+│   │   │                           # AccountController (tipis)
 │   │   ├── Middleware/             # SecurityHeaders (Permissions-Policy, CSP, no-store)
 │   │   └── Requests/Face/          # validasi input per endpoint
-│   ├── Models/                     # FaceTemplate, LivenessSession
+│   ├── Models/                     # FaceTemplate (akun), Attendance, LivenessSession
 │   ├── Services/Face/              # semua logika bisnis (lihat bagian 4)
 │   └── Console/Commands/           # face:seed-fake (hanya non-production)
 ├── bootstrap/app.php               # middleware, exception handler format error API
 ├── config/face.php                 # threshold, timeout, batas template, rate limit
+├── config/auth.php                 # model akun = FaceTemplate
 ├── database/
 │   ├── migrations/
 │   └── factories/                  # FaceTemplateFactory (vektor sintetis)
@@ -67,8 +68,8 @@ face-registry/
 │   │   ├── lightEffect.js          # overlay merah, biru, hijau (F-04)
 │   │   ├── liveness/               # blink.js, headTurn.js, flow.js (urutan tantangan)
 │   │   └── apiClient.js            # fetch ke /api/face/*
-│   └── views/face/                 # layout, home, enroll, check, delete
-├── routes/{web.php, api.php}
+│   └── views/face/                 # layout, login, enroll, dashboard
+├── routes/web.php                  # halaman, form, dan /api/face/* (grup web)
 ├── tests/{Unit, Feature, js, e2e}
 ├── api/index.php                   # entry Vercel, set path tulis ke /tmp
 ├── vercel.json, .vercelignore
@@ -79,15 +80,14 @@ face-registry/
 | Komponen | Tanggung jawab | Fitur |
 |---|---|---|
 | `SessionController` | Membuat sesi liveness (token, urutan tantangan) | F-01 |
-| `EnrollController` | Orkestrasi enroll lewat service | F-02, F-05, F-07, F-09 |
-| `IdentifyController` | Orkestrasi cek wajah | F-06 |
-| `DeleteController` | Hapus via kode atau via wajah | F-07, F-08 |
+| `EnrollController` | Enroll lewat service, lalu `Auth::login` | F-02, F-05, F-09, F-18 |
+| `LoginController` | Masuk dengan wajah lewat service, lalu `Auth::login` | F-18 |
+| `AccountController` | Dashboard, nama, absen, hapus riwayat, hapus akun, keluar (form Blade biasa) | F-19–F-21 |
 | `LivenessSessionService` | Buat, cari, dan konsumsi sesi (sekali pakai). Membersihkan sesi kedaluwarsa secara oportunistik | F-01 |
 | `LivenessValidator` | Validasi telemetri tantangan terhadap sesi dan waktu server | F-03 |
 | `EmbeddingCodec` | Normalisasi L2, pack/unpack float32, enkripsi/dekripsi | F-10 |
-| `FaceMatcher` | Cosine similarity 1:N, membaca template dengan `lazyById` agar memori tetap kecil | F-05, F-06, F-08 |
-| `DeleteCodeService` | Membuat kode hapus (≥ 128 bit) dan hash-nya | F-07 |
-| `FaceTemplateService` | Alur lengkap enroll/identify/delete dan batas jumlah template | F-05–F-08, F-13 |
+| `FaceMatcher` | Cosine similarity 1:N, membaca template dengan `lazyById` agar memori tetap kecil | F-05, F-18 |
+| `FaceTemplateService` | Alur lengkap enroll dan login, serta batas jumlah template | F-05, F-13, F-18 |
 | JS `flow.js` | Menjalankan urutan tantangan sesuai server, mengumpulkan telemetri | F-03 |
 | JS `detector.js` | Menghasilkan landmark, yaw, EAR, dan embedding | F-02, F-03 |
 | `SecurityHeaders` | `Permissions-Policy: camera=(self)`, CSP, `Cache-Control: no-store` pada `/api/face/*`. CSP harus mengizinkan WASM/WebGL dan domain `FACE_MODEL_URL` untuk Human (nilai pastinya dicatat di T-004, diterapkan di T-013) | F-14 |
@@ -95,7 +95,7 @@ face-registry/
 Controller hanya memanggil Form Request dan Service. Tidak ada logika bisnis di controller.
 
 ## 5. Alur data
-### 5.1 Enroll (F-01, F-02, F-03, F-05, F-07, F-09, F-10)
+### 5.1 Enroll (F-01, F-02, F-03, F-05, F-09, F-10, F-18)
 ```mermaid
 sequenceDiagram
     participant U as Pengguna
@@ -114,52 +114,57 @@ sequenceDiagram
     alt cocok dengan template ada
         S-->>B: 409 face_already_registered
     else tidak cocok
-        S->>D: simpan embedding terenkripsi dan hash kode hapus
-        S-->>B: 201 delete_code (sekali)
+        S->>D: simpan embedding terenkripsi
+        S->>S: Auth::login, regenerate sesi
+        S-->>B: 201 redirect /dashboard
     end
 ```
 
-### 5.2 Cek wajah (F-06)
+### 5.2 Masuk (F-18)
 ```mermaid
 sequenceDiagram
     participant B as Browser
     participant S as Laravel
     participant D as Database
-    B->>S: POST /api/face/sessions {purpose: identify}
+    B->>S: POST /api/face/sessions {purpose: login}
     S-->>B: token dan tantangan
     B->>B: tantangan dan embedding
-    B->>S: POST /api/face/identify {embedding, liveness}
+    B->>S: POST /api/face/login {embedding, liveness} + X-CSRF-TOKEN
     S->>D: konsumsi sesi, baca template, hitung cosine
-    S-->>B: 200 {registered: true atau false}
+    alt cocok
+        S->>S: Auth::login(template), regenerate sesi
+        S-->>B: 200 redirect /dashboard
+    else tidak cocok
+        S-->>B: 404 face_not_found
+    end
 ```
 
-### 5.3 Hapus (F-07, F-08)
-- **Via kode:** browser mengirim `delete_code` ke `POST /api/face/delete/code`. Server menghitung hash, mencari `delete_code_hash`, lalu menghapus baris. Tidak butuh sesi liveness.
-- **Via wajah:** sama dengan 5.2 dengan `purpose=delete`, lalu ke `POST /api/face/delete/face`. Server menghapus satu template dengan similarity tertinggi di atas threshold.
+### 5.3 Dashboard (F-19, F-20, F-21)
+Form Blade biasa dengan `@csrf` ke `AccountController`: `PUT /account/name`, `POST /attendance` (`firstOrCreate` per tanggal, dijaga index unik), `DELETE /attendance`, `DELETE /account` (cascade ke `face_attendances`), `POST /logout`.
 
 ## 6. Autentikasi dan otorisasi
-- Tidak ada login dan tidak ada `user_id`. Pengguna anonim.
-- Endpoint `/api/face/*` tanpa autentikasi, dilindungi oleh: (1) token sesi liveness sekali pakai yang disimpan di database, (2) rate limiting per IP (F-11), (3) tanpa skor di respons.
-- Otorisasi hapus: kepemilikan kode hapus, atau lolos liveness lalu cocok dengan wajah.
-- Same-origin saja (tanpa CORS). API route stateless, jadi tidak memakai cookie sesi untuk API.
-- Rahasia: `APP_KEY` dipakai `Crypt`. Mengganti `APP_KEY` membuat semua template tidak terbaca. Rotasi kunci di luar cakupan v1 (`TODO:`).
+- Akun = baris `face_templates` (ADR-020). Guard `web` bawaan Laravel, sesi di tabel `sessions`. Tidak ada password: satu-satunya cara masuk adalah pindai wajah yang lolos liveness dan cocok di atas threshold.
+- Endpoint JSON ada di grup `web` dengan prefix `api/face`, dilindungi oleh: (1) token sesi liveness sekali pakai di database, (2) rate limiting per IP (F-11), (3) CSRF, (4) tanpa skor di respons.
+- Rute dashboard memakai middleware `auth`. Setiap aksi hanya menyentuh akun `$request->user()`.
+- Same-origin saja (tanpa CORS).
+- Rahasia: `APP_KEY` dipakai `Crypt` (embedding dan nama). Mengganti `APP_KEY` membuat semua template dan nama tidak terbaca. Rotasi kunci di luar cakupan v1 (`TODO:`).
 
 ## 7. Penanganan error dan logging
 - Semua error `/api/*` dipetakan ke format standar di `docs/API.md` lewat exception handler di `bootstrap/app.php`.
 - `FaceException` membawa `FaceErrorCode`. Kode yang tidak dikenal menjadi `server_error` (HTTP 500) tanpa detail internal.
 - Log ke `stderr` (`LOG_CHANNEL=stderr`). Konteks log hanya `request_id`, `error_code`, dan nama endpoint.
-- Dilarang masuk log: embedding, kode hapus, token sesi, isi telemetri, body request endpoint `/api/face/*`.
+- Dilarang masuk log: embedding, nama, token sesi, isi telemetri, body request endpoint `/api/face/*`.
 - Frontend menampilkan pesan dari `lang/id/face.php` berdasarkan `error.code`, bukan teks mentah dari server.
 
 ## 8. Strategi testing
 | Level | Alat | Isi |
 |---|---|---|
-| Unit PHP | Pest | `FaceMatcher` (cosine, threshold), `EmbeddingCodec` (round trip, enkripsi), `DeleteCodeService`, `LivenessValidator` (urutan, durasi, ambang) |
+| Unit PHP | Pest | `FaceMatcher` (cosine, threshold), `EmbeddingCodec` (round trip, enkripsi), `LivenessValidator` (urutan, durasi, ambang) |
 | Feature PHP | Pest + SQLite in-memory | Semua endpoint, semua kode error, rate limit 429, sesi sekali pakai, batas template, tidak ada skor di respons |
 | Unit JS | Vitest | Hitungan EAR dan yaw dari fixture landmark sintetis, state machine tantangan |
 | E2E | Playwright + kamera palsu Chrome `[REKOMENDASI]` | Smoke test halaman dan alur sampai pengiriman, bukan akurasi liveness |
 | Manual | Daftar periksa | Perangkat nyata (Android, iOS, laptop), uji foto dan video putar ulang (M-2), pengukuran M-1 |
-| Performa | `face:seed-fake` | Isi 2.000 template sintetis di lingkungan non-production, ukur identify (M-3) |
+| Performa | `face:seed-fake` | Isi 2.000 template sintetis di lingkungan non-production, ukur login (M-3) |
 
 - Fixture dan data uji tidak boleh berisi wajah asli. Gunakan vektor acak dan landmark sintetis.
 - Target coverage `app/Services/Face` ≥ 80% (M-6).

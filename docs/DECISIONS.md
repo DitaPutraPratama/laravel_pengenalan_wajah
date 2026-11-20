@@ -16,7 +16,7 @@ Status: Diterima / Diterima, menunggu verifikasi / Digantikan.
 
 ## ADR-002 — Identitas anonim tanpa `user_id`
 - **Tanggal:** 2026-11-20
-- **Status:** Diterima
+- **Status:** Digantikan ADR-020
 - **Konteks:** Pengguna hanya mendaftarkan wajah dan mengecek apakah sudah terdaftar. Pemilik berencana memakai ini untuk absensi HRIS di masa depan.
 - **Keputusan:** v1 anonim. Tabel `face_templates` tidak punya `user_id`. Disiapkan kolom nullable `external_ref` dan kolom `purpose` di sesi (F-16) agar absensi bisa ditambahkan nanti.
 - **Alternatif:** Menambah `user_id` sekarang. Ditolak karena akan menambah autentikasi dan menyimpang dari tujuan v1.
@@ -162,3 +162,17 @@ Status: Diterima / Diterima, menunggu verifikasi / Digantikan.
 - **Keputusan:** Potong area batang hidung dari mesh (tengah antara sudut mata dalam 133 dan 362, dari atas titik 168 sampai titik 197), perkecil ke 32×24 grayscale di canvas memori, lalu ambil nilai absolut terbesar dari rata-rata baris `g[y+1] − g[y−1]`. Jika melebihi `FACE_GLASSES_MAX_EDGE` (12 `[ASUMSI]`), wajah dianggap berkacamata. Dicek saat posisi wajah dan saat embedding akhir. Crop tidak pernah disimpan atau dikirim.
 - **Alternatif:** Model klasifikasi kacamata tambahan (dependensi dan unduhan baru, belum ada yang jelas lisensinya). Pemeriksaan di server (mustahil, server tidak menerima gambar).
 - **Konsekuensi:** Hanya di klien, jadi bisa dilewati. Kacamata tanpa bingkai, bingkai tipis berwarna kulit, atau bayangan kuat di dahi bisa salah terbaca. Ambang perlu dikalibrasi dengan wajah nyata.
+
+## ADR-020 — Wajah sebagai akun: masuk, nama, absen, hapus akun
+- **Tanggal:** 2026-11-21
+- **Status:** Diterima
+- **Konteks:** Pemilik mengubah alur menjadi: masuk dengan wajah, isi nama di dalam, absen setiap hari (jam bebas), dan pengguna bisa menghapus semua data serta akunnya. Alur anonim (cek wajah, kode hapus) tidak lagi dibutuhkan.
+- **Keputusan:**
+  - Satu baris `face_templates` = satu akun. Model `FaceTemplate` memakai `Authenticatable` Laravel dan guard `web` bawaan (`config/auth.php` hanya mengganti model). Tidak ada password. Masuk = pindai wajah lolos liveness + `FaceMatcher` cocok, lalu `Auth::login` dan `session()->regenerate()`.
+  - Endpoint JSON pindah dari `routes/api.php` ke grup `web` dengan prefix `api/face` supaya login bisa memakai sesi cookie. CSRF berlaku lewat header `X-CSRF-TOKEN` dari `<meta name="csrf-token">`.
+  - Nama disimpan di `face_templates.name` dengan cast `encrypted`. Absen di tabel baru `face_attendances`, unik per akun per tanggal, `ON DELETE CASCADE`. Tanggal mengikuti `APP_TIMEZONE` (default `.env.example` dan `vercel.json`: `Asia/Jakarta`).
+  - Absen cukup satu tombol di dashboard, tanpa pindai ulang, karena sesi baru ada setelah pindai wajah (umur sesi `SESSION_LIFETIME`, 120 menit).
+  - Kode hapus, `/check`, `/delete`, `POST /api/face/identify`, dan `POST /api/face/delete/code` dihapus. Kolom `delete_code_hash` di-drop lewat migrasi baru. Hapus data dilakukan dari dashboard: hapus semua riwayat absen, atau hapus akun (hard delete template, nama, dan absen).
+  - Konfirmasi aksi hapus memakai `<details>` tanpa JavaScript.
+- **Alternatif:** Tabel `users` terpisah dengan relasi ke template (lebih banyak tabel, tanpa manfaat di alur satu wajah satu akun). Pindai ulang wajah setiap absen (lebih kuat, tapi dua kali pindai per hari). Mempertahankan kode hapus sebagai jalur cadangan (pengguna harus menyimpan kode, padahal akun sudah bisa dihapus dari dalam).
+- **Konsekuensi:** Wajah mirip di atas threshold bisa masuk ke akun orang lain, dan liveness browser bisa dipalsukan, jadi ini bukan autentikasi kuat. Jika wajah tidak lagi cocok (cahaya, threshold), pengguna tidak bisa masuk untuk menghapus akunnya. Pemilik demo harus menghapusnya dari database. Kalau absen butuh bukti kehadiran lebih kuat, tambahkan pindai ulang (`purpose=attendance`) pada tombol absen.

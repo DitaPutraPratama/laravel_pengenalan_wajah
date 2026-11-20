@@ -5,7 +5,12 @@ export async function post(path, body) {
     try {
         response = await fetch(`/api/face/${path}`, {
             method: 'POST',
-            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                // The endpoints sit in Laravel's web group (session login), so CSRF applies.
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+            },
             body: JSON.stringify(body),
         });
     } catch {

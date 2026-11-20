@@ -129,7 +129,7 @@ p { margin: 0; }
     padding-block: 6px;
 }
 
-/* From 520px the three links fit beside the name: one row. */
+/* From 520px the links fit beside the name: one row. */
 @media (min-width: 520px) {
     .site-header .inner {
         grid-template-columns: auto 1fr auto;
@@ -148,13 +148,14 @@ p { margin: 0; }
     white-space: nowrap;
 }
 
-.nav { grid-area: nav; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.nav { grid-area: nav; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; }
 
 @media (min-width: 520px) {
     .nav { display: flex; justify-content: flex-end; }
 }
 
-.nav a {
+.nav a,
+.nav button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -167,7 +168,8 @@ p { margin: 0; }
     text-decoration: none;
 }
 
-.nav a:hover { color: var(--foreground); }
+.nav button { width: 100%; border: 0; background: transparent; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
+.nav a:hover, .nav button:hover { color: var(--foreground); }
 .nav a[aria-current="page"] { color: var(--foreground); background: var(--muted); }
 
 .theme-toggle {
@@ -224,33 +226,6 @@ main { width: 100%; padding: 24px var(--gutter) 48px; }
 .flow-header { display: grid; gap: 6px; margin-bottom: 24px; }
 
 .flow section, .flow form { display: grid; gap: 16px; }
-
-/* Home: wider canvas, actions stack on phones and tablets, three across from 768px. */
-.home { max-width: var(--page); margin: 0 auto; }
-.home-intro { display: grid; gap: 12px; max-width: 640px; margin-bottom: 32px; }
-.home-intro h1 { font-size: clamp(28px, 5vw, 40px); }
-.home-intro p { color: var(--muted-foreground); font-size: clamp(16px, 2vw, 18px); }
-
-.tasks { display: grid; gap: 16px; }
-
-/* Three peer tasks: stacked until each card has room for its sentence, then one row. */
-@media (min-width: 768px) {
-    .tasks { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-
-.task {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 20px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--card);
-    box-shadow: var(--shadow);
-}
-
-.task .button { margin-top: auto; }
-.task p { flex: 1; margin-bottom: 8px; }
 
 /* --- components ---------------------------------------------------------------- */
 
@@ -333,17 +308,30 @@ label { font-size: 14px; font-weight: 500; }
 
 .input:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 
-.code {
-    padding: 16px;
-    border-radius: var(--radius-sm);
+.result { font-size: 18px; font-weight: 600; }
+
+.notice {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     background: var(--muted);
-    font: 600 clamp(17px, 4.5vw, 20px) / 1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
-    letter-spacing: 0.05em;
-    text-align: center;
-    overflow-wrap: anywhere;
+    font-size: 14px;
 }
 
-.result { font-size: 18px; font-weight: 600; }
+.field-error { color: var(--destructive-text); font-size: 14px; }
+
+/* Dashboard: stacked blocks separated by a rule. */
+.sections { display: grid; gap: 32px; }
+.sections > * + * { padding-top: 32px; border-top: 1px solid var(--border); }
+
+.history { display: grid; margin: 0; padding: 0; list-style: none; }
+.history li { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.history li:last-child { border-bottom: 0; }
+
+/* <details> is the confirmation step for destructive actions. */
+.confirm summary { display: flex; align-items: center; min-height: 44px; color: var(--destructive-text); font-weight: 500; cursor: pointer; }
+.confirm form { padding-top: 8px; }
 
 .alert {
     display: grid;

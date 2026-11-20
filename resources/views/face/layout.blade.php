@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title') · {{ config('app.name') }}</title>
     {{-- Apply a saved theme before first paint so the page does not flash. --}}
     <script nonce="{{ Vite::cspNonce() }}">try { const t = localStorage.getItem('theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}</script>
@@ -11,11 +12,19 @@
 <body>
     <header class="site-header">
         <div class="inner">
-            <a class="brand" href="{{ route('face.home') }}">{{ config('app.name') }}</a>
+            <a class="brand" href="{{ route('face.login') }}">{{ config('app.name') }}</a>
             <nav class="nav" aria-label="{{ __('face.nav.label') }}">
-                @foreach (['enroll', 'check', 'delete'] as $page)
-                    <a href="{{ route("face.{$page}") }}" @if (request()->routeIs("face.{$page}")) aria-current="page" @endif>{{ __("face.nav.{$page}") }}</a>
-                @endforeach
+                @auth
+                    <a href="{{ route('face.dashboard') }}" @if (request()->routeIs('face.dashboard')) aria-current="page" @endif>{{ __('face.nav.dashboard') }}</a>
+                    <form method="post" action="{{ route('face.logout') }}">
+                        @csrf
+                        <button type="submit">{{ __('face.nav.logout') }}</button>
+                    </form>
+                @else
+                    @foreach (['login', 'enroll'] as $page)
+                        <a href="{{ route("face.{$page}") }}" @if (request()->routeIs("face.{$page}")) aria-current="page" @endif>{{ __("face.nav.{$page}") }}</a>
+                    @endforeach
+                @endauth
             </nav>
             <button type="button" class="theme-toggle" data-theme-toggle aria-label="{{ __('face.theme.toggle') }}" title="{{ __('face.theme.toggle') }}">
                 <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>

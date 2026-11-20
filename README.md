@@ -1,6 +1,6 @@
 # Face Registry
 
-Aplikasi Laravel untuk mendaftarkan wajah secara anonim, mengecek apakah wajah sudah terdaftar, dan menghapus data wajah. Pemindaian (kedip, toleh kanan, toleh kiri) berjalan di browser. Server hanya menerima embedding (deretan angka), menyimpannya terenkripsi, dan mencocokkannya di PHP. Tidak ada foto yang dikirim atau disimpan, dan tidak butuh Python.
+Aplikasi Laravel dengan akun berbasis wajah: masuk dengan pindai wajah, isi nama, absen sekali sehari, dan hapus riwayat absen atau seluruh akun. Pemindaian (kedip, toleh kanan, toleh kiri) berjalan di browser. Server hanya menerima embedding (deretan angka), menyimpannya terenkripsi, dan mencocokkannya di PHP. Tidak ada foto yang dikirim atau disimpan, dan tidak butuh Python.
 
 Ini bukan package. Clone, ubah sesuai kebutuhan, lalu deploy.
 
@@ -26,10 +26,11 @@ composer dev
 Buka http://localhost:8000. `composer dev` menjalankan server Laravel, Vite, queue, dan log sekaligus.
 
 Halaman yang tersedia:
-- `/`: beranda
-- `/enroll`: daftar wajah
-- `/check`: cek wajah
-- `/delete`: hapus data dengan kode hapus
+- `/`: masuk dengan wajah
+- `/enroll`: daftar dengan wajah (sekali per wajah)
+- `/dashboard`: isi nama, absen, riwayat, hapus riwayat, hapus akun
+
+Tanggal absen mengikuti `APP_TIMEZONE` (contoh di `.env.example`: `Asia/Jakarta`).
 
 Buka lewat `localhost`, bukan lewat IP LAN. Kalau dibuka lewat IP LAN, browser memblokir kamera karena koneksinya bukan HTTPS.
 
@@ -38,22 +39,22 @@ Kalau muncul error "No application encryption key" padahal `.env` sudah benar, c
 ## Cara kerja
 1. Browser meminta sesi ke `POST /api/face/sessions`. Server membuat token sekali pakai dan urutan tiga gerakan yang diacak.
 2. Browser memuat [Human](https://github.com/vladmandic/human), memastikan wajah ada di lingkaran, lalu meminta pengguna melakukan gerakan sesuai urutan dari server.
-3. Browser mengirim embedding (1024 angka) dan telemetri gerakan ke `/api/face/enroll` atau `/api/face/identify`.
+3. Browser mengirim embedding (1024 angka) dan telemetri gerakan ke `/api/face/enroll` (daftar) atau `/api/face/login` (masuk).
 4. Server memeriksa token, kewajaran telemetri, lalu mencocokkan embedding dengan semua template di database (cosine similarity).
-5. Saat enroll berhasil, server memberi kode hapus satu kali. Database hanya menyimpan hash kode itu.
+5. Kalau berhasil, server memasukkan akun lewat sesi Laravel biasa (wajah = akun, tanpa password). Di dashboard, form Blade biasa mengurus nama, absen, dan penghapusan data.
 
 ## File penting
 | File | Fungsi |
 |---|---|
 | `config/face.php` | Semua pengaturan: threshold, dimensi embedding, URL model, ambang kedip dan toleh, batas template, rate limit |
-| `routes/api.php` | Empat endpoint JSON: `sessions`, `enroll`, `identify`, `delete/code` |
-| `routes/web.php` | Empat halaman |
-| `app/Services/Face/FaceTemplateService.php` | Alur enroll, identify, dan hapus, dengan urutan pemeriksaan sesuai `docs/API.md` |
+| `routes/web.php` | Halaman, form dashboard, dan tiga endpoint JSON `/api/face/{sessions,enroll,login}` (grup web, butuh CSRF) |
+| `app/Services/Face/FaceTemplateService.php` | Alur enroll dan login, dengan urutan pemeriksaan sesuai `docs/API.md` |
+| `app/Http/Controllers/Face/AccountController.php` | Dashboard: nama, absen, hapus riwayat, hapus akun, keluar |
+| `app/Models/FaceTemplate.php` | Template wajah sekaligus akun (`Authenticatable`), nama terenkripsi |
 | `app/Services/Face/FaceMatcher.php` | Pencocokan 1:N. Skor tidak pernah keluar dari class ini |
 | `app/Services/Face/EmbeddingCodec.php` | Normalisasi, pengemasan float32, enkripsi embedding |
 | `app/Services/Face/LivenessSessionService.php` | Membuat dan memakai sesi sekali pakai |
 | `app/Services/Face/LivenessValidator.php` | Memeriksa telemetri gerakan dari browser |
-| `app/Services/Face/DeleteCodeService.php` | Membuat kode hapus dan hash-nya |
 | `app/Http/Middleware/SecurityHeaders.php` | CSP, izin kamera, `no-store` di API |
 | `app/Http/Middleware/EnsureFaceConfigured.php` | Menolak request API kalau variabel `FACE_*` wajib masih kosong |
 | `bootstrap/app.php` | Mengubah semua error `/api/*` ke format JSON standar |
@@ -86,7 +87,7 @@ Variabel lain yang punya nilai default di `config/face.php`:
 ## Kalibrasi threshold
 Nilai threshold harus disetel dengan wajah sungguhan sebelum dipakai:
 1. Set `FACE_LOG_SIMILARITY=true` di `.env` lokal.
-2. Daftarkan satu wajah, lalu cek wajah yang sama dan wajah orang lain.
+2. Daftarkan satu wajah, keluar, lalu coba masuk dengan wajah yang sama dan wajah orang lain.
 3. Lihat `best_similarity` di `storage/logs/laravel.log`, lalu pilih threshold di antara skor wajah yang sama dan wajah berbeda.
 4. Kembalikan ke `false`. Skor hanya ditulis ke log, tidak pernah dikirim ke browser.
 
@@ -119,10 +120,12 @@ npm run lint      # ESLint
 - Dua pendaftaran wajah yang sama pada waktu bersamaan bisa sama-sama lolos (ADR-016).
 - Mengganti `APP_KEY` membuat semua embedding tersimpan tidak bisa dibaca lagi.
 - Larangan kacamata (F-17) hanya dicek di browser dengan heuristik garis bingkai di batang hidung. Kacamata tanpa bingkai bisa lolos, dan klien yang dimodifikasi bisa melewatinya. Atur kepekaan dengan `FACE_GLASSES_MAX_EDGE` (0 = mati).
-- Belum dibuat: efek cahaya merah/biru/hijau (F-04) dan hapus lewat pindai wajah (F-08).
+- Masuk dengan wajah bukan autentikasi kuat. Wajah yang cukup mirip (di atas threshold) bisa masuk ke akun orang lain, dan foto atau video yang dibuat dengan cermat bisa lolos pemeriksaan gerakan. Absen hanya butuh sesi yang masih aktif, tanpa pindai ulang.
+- Kalau wajah tidak lagi cocok (cahaya, threshold diubah), pengguna tidak bisa masuk untuk menghapus akunnya. Pemilik aplikasi harus menghapusnya dari database.
+- Belum dibuat: efek cahaya merah/biru/hijau (F-04).
 
 ## Privasi
-Data wajah termasuk data pribadi sensitif menurut UU PDP. Proyek ini hanya menyimpan embedding terenkripsi, meminta persetujuan, dan menyediakan penghapusan. Teks persetujuan masih draf dan belum direview hukum (T-038). Kepatuhan hukum menjadi tanggung jawab Anda jika memakai data nyata.
+Data wajah termasuk data pribadi sensitif menurut UU PDP. Proyek ini menyimpan embedding dan nama terenkripsi serta tanggal dan jam absen, tanpa foto. Persetujuan diminta saat daftar, dan pengguna bisa menghapus riwayat absen atau seluruh akun dari dashboard. Teks persetujuan masih draf dan belum direview hukum (T-038). Kepatuhan hukum menjadi tanggung jawab Anda jika memakai data nyata.
 
 ## Dokumentasi
 - `docs/PRD.md`: fitur dan acceptance criteria

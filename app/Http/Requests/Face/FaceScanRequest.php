@@ -6,7 +6,7 @@ namespace App\Http\Requests\Face;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-/** Embedding plus liveness telemetry (docs/API.md). Used by identify; enroll adds consent. */
+/** Embedding plus liveness telemetry (docs/API.md). Used by login; enroll adds consent. */
 class FaceScanRequest extends FormRequest
 {
     /** @return array<string, mixed> */

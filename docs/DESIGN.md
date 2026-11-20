@@ -1,24 +1,28 @@
 # DESIGN
 
-Desain sengaja polos. Tujuannya satu: pengguna paham apa yang harus dilakukan di setiap langkah. Semua teks UI berbahasa Indonesia dan disimpan di `lang/id/face.php`. Fitur terkait: F-02, F-04, F-06, F-07, F-08, F-09, F-12.
+Desain sengaja polos. Tujuannya satu: pengguna paham apa yang harus dilakukan di setiap langkah. Semua teks UI berbahasa Indonesia dan disimpan di `lang/id/face.php`. Fitur terkait: F-02, F-04, F-09, F-12, F-18–F-21.
 
 ## 1. Prinsip desain
 1. **Satu layar, satu tugas, satu tombol utama.** Tidak ada pilihan yang tidak perlu.
-2. **Bahasa sehari-hari.** Kata "embedding", "liveness", dan "template" tidak muncul di UI. Gunakan "pindai wajah", "pemeriksaan gerakan", "kode hapus".
+2. **Bahasa sehari-hari.** Kata "embedding", "liveness", dan "template" tidak muncul di UI. Gunakan "pindai wajah", "pemeriksaan gerakan", "akun", "absen".
 3. **Instruksi selalu berupa teks.** Warna dan animasi hanya pendukung, tidak pernah satu-satunya petunjuk.
 4. **Jujur soal data.** Layar pendaftaran menyatakan bahwa yang disimpan adalah pola wajah dalam bentuk angka, bukan foto, dan bisa dihapus kapan saja.
 5. **Tanpa dekorasi.** Tidak ada gradien, kaca buram (glassmorphism), ilustrasi stok, emoji, atau animasi yang tidak membantu pengguna. Ikon hanya bila perlu (panah arah, salin).
 6. **Kesalahan menjelaskan langkah berikutnya**, bukan hanya mengatakan "gagal".
 
 ## 2. Daftar layar
-### 2.1 Beranda `/` (F-12)
-- **Tujuan:** menjelaskan fungsi aplikasi dan mengarahkan ke tiga tugas.
-- **Komponen:** judul, dua kalimat penjelasan, tiga tombol/tautan (Daftarkan wajah, Cek wajah, Hapus data wajah), catatan privasi satu kalimat.
-- **State:** hanya sukses (halaman statis).
+### 2.1 Masuk `/` (F-18)
+- **Tujuan:** masuk ke akun dengan pindai wajah.
+- **Komponen:** `CameraCircle`, `InstructionText`, `ProgressSteps`, `AlertBox`, `PrimaryButton`, tautan "Daftar dengan wajah".
+- **State:** memuat, izin kamera, posisi, tantangan, memproses (sama seperti 2.2 tanpa persetujuan), lalu:
+  - Sukses: pindah ke `/dashboard`.
+  - Gagal, wajah tidak cocok: `AlertBox` "Wajah belum terdaftar…" + "Coba lagi" + tautan "Daftar".
+  - Gagal lain: pesan error seperti di 2.2.
+  - Setelah hapus akun: `Notice` "Akun dan semua data sudah dihapus."
 
-### 2.2 Pendaftaran `/enroll` (F-02, F-03, F-04, F-07, F-09)
-- **Tujuan:** mendaftarkan wajah dari persetujuan sampai kode hapus.
-- **Komponen:** `ConsentBox`, `CameraCircle`, `InstructionText`, `ProgressSteps`, `AlertBox`, `CodeDisplay`, `PrimaryButton`.
+### 2.2 Pendaftaran `/enroll` (F-02, F-03, F-04, F-09, F-18)
+- **Tujuan:** mendaftarkan wajah sebagai akun, lalu langsung masuk.
+- **Komponen:** `ConsentBox`, `CameraCircle`, `InstructionText`, `ProgressSteps`, `AlertBox`, `PrimaryButton`.
 
 | State | Tampilan | Teks utama (contoh) |
 |---|---|---|
@@ -30,37 +34,26 @@ Desain sengaja polos. Tujuannya satu: pengguna paham apa yang harus dilakukan di
 | Efek cahaya (F-04) | Area di luar lingkaran berganti merah, biru, hijau berurutan | "Tahan posisi sebentar." |
 | Tantangan | Instruksi besar + panah arah + `ProgressSteps` (1 dari 3) | "Kedipkan mata.", "Toleh perlahan ke kanan.", "Toleh perlahan ke kiri." (urutan sesuai server) |
 | Memproses | Lingkaran tetap tampil, tombol dinonaktifkan | "Memeriksa…" |
-| Sukses | Kode hapus di `CodeDisplay`, tombol Salin, kotak centang "Saya sudah menyimpan kode ini", tombol Selesai aktif setelah dicentang | "Pendaftaran berhasil. Simpan kode hapus ini. Kode hanya ditampilkan sekali dan tidak bisa dilihat lagi." |
+| Sukses | Pindah ke `/dashboard` (sudah masuk) | — |
 | Gagal: gerakan | `AlertBox` + tombol "Coba lagi" (membuat sesi baru) | "Pemeriksaan gerakan belum berhasil. Coba lagi dan ikuti instruksi dengan perlahan." |
-| Gagal: sudah terdaftar | `AlertBox` + tautan ke Beranda dan Hapus | "Wajah ini sudah terdaftar." |
+| Gagal: sudah terdaftar | `AlertBox` + tautan "Masuk" | "Wajah ini sudah terdaftar. Silakan masuk." |
 | Gagal: kuota penuh | `AlertBox` | "Pendaftaran sedang ditutup karena kuota demo penuh." |
 | Gagal: terlalu banyak percobaan | `AlertBox` + hitung mundur dari `retry_after` | "Terlalu banyak percobaan. Coba lagi dalam {n} detik." |
 
-### 2.3 Cek wajah `/check` (F-06)
-- **Tujuan:** mengetahui apakah wajah sudah terdaftar.
-- **Komponen:** `CameraCircle`, `InstructionText`, `ProgressSteps`, `AlertBox`, `PrimaryButton`.
-- **State:** sama dengan enroll sampai tahap memproses (tanpa persetujuan dan tanpa kode hapus), lalu:
-  - Sukses, terdaftar: "Wajah ini sudah terdaftar." + tautan "Hapus data wajah".
-  - Sukses, belum: "Wajah ini belum terdaftar." + tombol "Daftarkan wajah".
-  - Gagal: pesan error seperti di 2.2.
+### 2.3 Dashboard `/dashboard` (F-19, F-20, F-21)
+- **Tujuan:** isi nama, absen, lihat riwayat, hapus data.
+- **Komponen:** `Notice`, form nama, `PrimaryButton`, daftar riwayat, `ConfirmDetails`.
 
-### 2.4 Hapus data `/delete` (F-07, F-08)
-- **Tujuan:** menghapus data wajah lewat kode atau pindai wajah.
-- **Komponen:** pilihan dua tab ("Pakai kode hapus" / "Pindai wajah"), `CodeInput`, `CameraCircle`, `AlertBox`, `PrimaryButton`.
-
-| State | Tampilan | Teks utama (contoh) |
+| State | Tampilan | Teks utama |
 |---|---|---|
-| Pilih cara | Dua tab, default "Pakai kode hapus" | "Pilih cara menghapus data wajah Anda." |
-| Input kode | Kolom kode (huruf kapital otomatis, spasi diabaikan, bisa ditempel) | "Masukkan kode hapus yang Anda simpan saat mendaftar." |
-| Konfirmasi | Ringkasan + tombol bahaya | "Data wajah akan dihapus permanen dan tidak bisa dikembalikan." Tombol: "Hapus data wajah saya" |
-| Pindai wajah (F-08) | Alur kamera seperti 2.3, lalu layar konfirmasi yang sama | "Pindai wajah Anda untuk menghapus data." |
-| Memproses | Tombol dinonaktifkan | "Menghapus…" |
-| Sukses | Pesan + tautan ke Beranda | "Data wajah Anda sudah dihapus." |
-| Gagal: kode salah | `AlertBox`, isi kolom tetap | "Kode tidak ditemukan. Periksa lagi, atau hapus lewat pindai wajah." |
-| Gagal: wajah tidak ditemukan | `AlertBox` | "Wajah ini tidak ditemukan di data kami." |
-| Gagal: terlalu banyak percobaan | Sama seperti 2.2 | |
-
-Layar "kosong" tidak ada karena aplikasi tidak menampilkan daftar data.
+| Nama kosong | Judul "Isi nama Anda", form nama dengan tombol utama, bagian hapus data. Absen dan riwayat tidak tampil | "Isi nama dulu sebelum absen." |
+| Belum absen hari ini | "Halo, {nama}", tombol utama "Absen sekarang" | "Absen sekali sehari, jam bebas." |
+| Sudah absen hari ini | Teks status menggantikan tombol | "Sudah absen pukul 08.12" |
+| Riwayat | Daftar 30 absen terakhir: hari, tanggal, jam | Kosong: "Belum ada absen." |
+| Ubah nama | Form nama terisi, tombol outline | "Nama tersimpan." |
+| Nama tidak valid | Pesan di bawah kolom, `aria-invalid` | "Isi nama Anda." / "Nama maksimal 100 karakter." |
+| Hapus riwayat | `ConfirmDetails` → penjelasan + tombol bahaya | "Semua riwayat absen dihapus permanen. Akun tetap ada." |
+| Hapus akun | `ConfirmDetails` → penjelasan + tombol bahaya → kembali ke `/` | "Pola wajah, nama, dan semua riwayat absen dihapus permanen." |
 
 ## 3. Pemetaan kode error ke pesan
 Frontend menampilkan pesan dari `lang/id/face.php` berdasarkan `error.code` (lihat `docs/API.md`), bukan teks dari server.
@@ -71,9 +64,8 @@ Frontend menampilkan pesan dari `lang/id/face.php` berdasarkan `error.code` (lih
 | `consent_required` | "Anda perlu menyetujui penyimpanan pola wajah untuk melanjutkan." |
 | `session_invalid` | "Sesi pemindaian berakhir. Mulai lagi." (tombol "Mulai lagi") |
 | `liveness_failed` | "Pemeriksaan gerakan belum berhasil. Coba lagi dan ikuti instruksi dengan perlahan." |
-| `face_already_registered` | "Wajah ini sudah terdaftar." |
-| `delete_code_invalid` | "Kode tidak ditemukan. Periksa lagi, atau hapus lewat pindai wajah." |
-| `face_not_found` | "Wajah ini tidak ditemukan di data kami." |
+| `face_already_registered` | "Wajah ini sudah terdaftar. Silakan masuk." |
+| `face_not_found` | "Wajah belum terdaftar. Daftar dulu, atau coba lagi dengan cahaya lebih terang." |
 | `capacity_reached` | "Pendaftaran sedang ditutup karena kuota demo penuh." |
 | `rate_limited` | "Terlalu banyak percobaan. Coba lagi dalam {n} detik." |
 | `server_error` / jaringan putus | "Terjadi masalah di server. Coba lagi beberapa saat lagi." |
@@ -81,17 +73,13 @@ Frontend menampilkan pesan dari `lang/id/face.php` berdasarkan `error.code` (lih
 ## 4. Navigasi dan alur antar layar
 ```mermaid
 flowchart TD
-    A[Beranda] --> B[Enroll]
-    A --> C[Cek wajah]
-    A --> D[Hapus data]
-    B -->|sukses| B1[Kode hapus ditampilkan sekali]
-    B1 --> A
-    B -->|sudah terdaftar| D
-    C -->|terdaftar| D
-    C -->|belum terdaftar| B
-    D --> A
+    A[Masuk /] -->|cocok| D[Dashboard]
+    A -->|belum terdaftar| B[Daftar /enroll]
+    B -->|sukses| D
+    B -->|sudah terdaftar| A
+    D -->|keluar / hapus akun| A
 ```
-- Header: nama aplikasi (tautan ke Beranda) dan tiga tautan: Daftar, Cek, Hapus.
+- Header tamu: nama aplikasi, tautan Masuk dan Daftar. Header akun: tautan Absen (dashboard) dan tombol Keluar.
 - Footer: kalimat privasi singkat dan tautan kebijakan privasi (`TODO:` isi setelah review hukum).
 - Setelah tantangan gagal, pengguna kembali ke tahap "Posisi wajah" dengan sesi baru. Tidak ada kembali ke persetujuan.
 
@@ -122,14 +110,14 @@ Kontras teks dan tombol minimal WCAG AA (4,5:1), dicek untuk kedua tema.
 ## 6. Komponen reusable
 | Komponen | Fungsi | Dipakai di |
 |---|---|---|
-| `CameraCircle` | Video terpotong lingkaran (pratinjau dicerminkan), garis warna status | Enroll, Cek, Hapus |
-| `InstructionText` | Instruksi besar, `aria-live="polite"` | Enroll, Cek, Hapus |
-| `ProgressSteps` | "Langkah 1 dari 3" dengan teks, bukan hanya titik | Enroll, Cek, Hapus |
-| `LightEffect` | Latar luar lingkaran berganti merah, biru, hijau (F-04) | Enroll, Cek, Hapus |
+| `CameraCircle` | Video terpotong lingkaran (pratinjau dicerminkan), garis warna status | Masuk, Daftar |
+| `InstructionText` | Instruksi besar, `aria-live="polite"` | Masuk, Daftar |
+| `ProgressSteps` | "Langkah 1 dari 3" dengan teks, bukan hanya titik | Masuk, Daftar |
+| `LightEffect` | Latar luar lingkaran berganti merah, biru, hijau (F-04) | Masuk, Daftar |
 | `AlertBox` | Pesan error/info dengan satu tombol aksi | Semua |
 | `ConsentBox` | Teks persetujuan + kotak centang | Enroll |
-| `CodeDisplay` | Kode hapus huruf monospace, tombol Salin | Enroll |
-| `CodeInput` | Kolom kode hapus | Hapus |
+| `Notice` | Hasil aksi form terakhir (`role="status"`) | Masuk, Dashboard |
+| `ConfirmDetails` | `<details>` merah sebagai langkah konfirmasi hapus, tanpa JavaScript | Dashboard |
 | `PrimaryButton` | Tombol utama, status nonaktif dan memuat | Semua |
 
 ## 7. Efek cahaya (F-04)
@@ -140,9 +128,8 @@ Kontras teks dan tombol minimal WCAG AA (4,5:1), dicek untuk kedua tema.
 
 ## 8. Responsif dan aksesibilitas
 - **Mobile-first, tiga rentang lebar.**
-  - HP (< 640 px): satu kolom tanpa bingkai kartu, margin 16 px. Header dua baris: nama dan tombol tema di atas, tiga tautan sama lebar di bawah.
-  - Tablet (640–767 px): halaman tugas menjadi kartu di tengah (maks. 520 px). Beranda masih satu kolom.
-  - Desktop (≥ 768 px): beranda menampilkan tiga kartu tugas dalam satu baris (maks. 960 px). Halaman tugas (enroll, cek, hapus) tetap satu kolom karena alurnya berurutan.
+  - HP (< 640 px): satu kolom tanpa bingkai kartu, margin 16 px. Header dua baris: nama dan tombol tema di atas, tautan sama lebar di bawah.
+  - Mulai 640 px: setiap halaman (masuk, daftar, dashboard) menjadi kartu di tengah (maks. 520 px), satu kolom.
   - Header satu baris mulai 520 px.
 - Layar kecil (≤ 360 px) dan orientasi landscape tetap menampilkan lingkaran dan instruksi tanpa scroll.
 - **Instruksi teks** selalu tampil untuk setiap tantangan, tidak hanya panah atau warna.
@@ -150,6 +137,5 @@ Kontras teks dan tombol minimal WCAG AA (4,5:1), dicek untuk kedua tema.
 - Semua tombol dan kolom bisa dipakai dengan keyboard. Indikator fokus selalu terlihat.
 - Kotak centang dan kolom punya `label` yang terhubung.
 - Efek cahaya dan animasi menghormati `prefers-reduced-motion`.
-- Kode hapus tidak disimpan di `localStorage` atau URL. Hanya tampil di layar sukses.
 - Catatan implementasi: pratinjau kamera dicerminkan seperti cermin, jadi panah "kanan" di layar searah dengan arah toleh pengguna. Perhitungan yaw tetap memakai konvensi di `docs/API.md` (positif = kanan pengguna).
 - `TODO:` uji dengan pembaca layar (VoiceOver/TalkBack) pada T-036.

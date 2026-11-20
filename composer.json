@@ -2,7 +2,7 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "face-registry/face-registry",
     "type": "project",
-    "description": "Anonymous face registration with liveness, 1:N duplicate check, and owner deletion.",
+    "description": "Face login with liveness, daily attendance, and self-service account deletion.",
     "keywords": [
         "laravel",
         "framework"

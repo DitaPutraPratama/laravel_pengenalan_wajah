@@ -1,13 +1,13 @@
 # PRD — Face Registry (nama kerja)
 
-Status: Draft v0.2 · Tanggal: 2026-11-20
+Status: Draft v0.3 · Tanggal: 2026-11-21
 
 ## 1. Ringkasan produk
-Aplikasi web Laravel untuk mendaftarkan wajah secara anonim dengan tantangan liveness, mengecek apakah sebuah wajah sudah terdaftar, dan menghapus data wajah oleh pemiliknya. Pengalaman pengguna meniru pendaftaran wajah di dompet digital: wajah masuk ke lingkaran, ada cahaya merah/biru/hijau, lalu diminta kedip, toleh kanan, dan toleh kiri. Repo ditujukan untuk di-clone dan dimodifikasi pemiliknya (bukan package), dengan demo online di Vercel.
+Aplikasi web Laravel dengan akun berbasis wajah: pengguna masuk dengan pindai wajah (tantangan liveness), mengisi nama, absen sekali sehari pada jam bebas, dan bisa menghapus riwayat absen atau seluruh akunnya. Wajah baru didaftarkan sekali (anti-duplikat). Pengalaman pengguna meniru pendaftaran wajah di dompet digital: wajah masuk ke lingkaran, ada cahaya merah/biru/hijau, lalu diminta kedip, toleh kanan, dan toleh kiri. Repo ditujukan untuk di-clone dan dimodifikasi pemiliknya (bukan package), dengan demo online di Vercel.
 
 ## 2. Latar belakang dan masalah
 - Pemilik proyek sedang membangun HRIS dan memperkirakan butuh face recognition untuk absensi, tetapi fitur HRIS belum jelas. `[ASUMSI]` Proyek ini dipakai sebagai fondasi dan tempat bereksperimen sebelum fitur absensi dibangun.
-- Masalah yang diselesaikan di v1: mencegah satu orang mendaftar berkali-kali, tanpa menyimpan identitas atau foto.
+- Masalah yang diselesaikan di v1: absensi harian dengan wajah sebagai satu-satunya kredensial, satu wajah satu akun, tanpa menyimpan foto. (Sebelum 2026-11-21: registrasi anonim anti-duplikat, lihat ADR-020.)
 - Tujuan saat ini: alat untuk menguji fitur face recognition yang akan dipakai proyek lain. Kesederhanaan lebih diutamakan daripada ketahanan terhadap penyalahgunaan (lihat ADR-016).
 - `TODO:` riset singkat solusi sejenis (SDK komersial, repo open source) untuk perbandingan.
 
@@ -16,22 +16,22 @@ Aplikasi web Laravel untuk mendaftarkan wajah secara anonim dengan tantangan liv
 |---|---|---|---|
 | M-1 | Waktu enroll sampai selesai (median) | ≤ 45 detik | `[ASUMSI]` laptop, webcam 720p |
 | M-2 | False accept / false reject | ≤ 1% / ≤ 5% | `[ASUMSI]` `TODO:` dataset dan prosedur uji |
-| M-3 | Latensi identify p95 dengan 2.000 template | ≤ 1,5 detik | `[ASUMSI]` diukur di Vercel |
+| M-3 | Latensi login p95 dengan 2.000 template | ≤ 1,5 detik | `[ASUMSI]` diukur di Vercel |
 | M-4 | Foto/frame wajah tersimpan | 0 | Diperiksa lewat review DB dan storage |
 | M-5 | Waktu dari clone sampai enroll berjalan di lokal | ≤ 20 menit | `[ASUMSI]` mengikuti README |
 | M-6 | Coverage test pada `app/Services/Face` | ≥ 80% | `[ASUMSI]` |
 
 ## 4. Target pengguna dan persona
 - **Raka, pemilik/developer proyek.** Meng-clone repo, memodifikasinya untuk kebutuhan HRIS, men-deploy ke Vercel untuk uji online. Butuh kode sederhana dan mudah diubah.
-- **Sari, pengguna akhir.** Mendaftarkan wajah lewat HP atau laptop, ingin cepat dan tahu datanya bisa dihapus.
+- **Sari, pengguna akhir.** Masuk dengan wajah lewat HP atau laptop, absen setiap hari, ingin cepat dan tahu datanya bisa dihapus.
 - **Dimas, penguji demo.** Mencoba alur online, termasuk mencoba menipu dengan foto, untuk menilai keamanan.
 
 ## 5. Daftar fitur
 Prioritas MoSCoW. Semua angka dalam acceptance criteria bertanda `[ASUMSI]` dan bisa diubah lewat config.
 
 ### F-01 Sesi liveness di server — Must
-**Story:** Sebagai sistem, saya membuat sesi liveness sekali pakai agar hasil enroll/identify/hapus tidak bisa diputar ulang.
-- **Given** klien meminta sesi dengan tujuan `enroll`, `identify`, atau `delete`, **When** server memprosesnya, **Then** server menyimpan sesi di database dengan token acak ≥ 128 bit, urutan 3 tantangan (kedip, toleh kanan, toleh kiri) yang teracak, dan kedaluwarsa 120 detik `[ASUMSI]`.
+**Story:** Sebagai sistem, saya membuat sesi liveness sekali pakai agar hasil enroll/masuk tidak bisa diputar ulang.
+- **Given** klien meminta sesi dengan tujuan `enroll` atau `login`, **When** server memprosesnya, **Then** server menyimpan sesi di database dengan token acak ≥ 128 bit, urutan 3 tantangan (kedip, toleh kanan, toleh kiri) yang teracak, dan kedaluwarsa 120 detik `[ASUMSI]`.
 - **Given** token sudah dipakai atau kedaluwarsa, **When** dipakai lagi, **Then** server menolak dengan HTTP 422 dan kode `session_invalid`.
 - **Given** sebuah token sudah dibawa dalam satu permintaan (berhasil atau gagal), **When** token dipakai lagi, **Then** server menolak dengan HTTP 422 `session_invalid`. Percobaan ulang butuh sesi baru.
 
@@ -57,21 +57,8 @@ Prioritas MoSCoW. Semua angka dalam acceptance criteria bertanda `[ASUMSI]` dan 
 **Story:** Sebagai pemilik, saya ingin satu wajah hanya terdaftar sekali.
 - **Given** embedding baru cocok dengan template yang ada (similarity ≥ threshold), **When** enroll, **Then** server menolak dengan HTTP 409 `face_already_registered`, tidak membuat record, dan tidak membocorkan skor.
 
-### F-06 Cek wajah terdaftar (1:N) — Must
-**Story:** Sebagai pengguna, saya ingin tahu apakah wajah saya sudah terdaftar.
-- **Given** sesi liveness `identify` lulus, **When** embedding dibandingkan dengan semua template, **Then** server membalas `{"registered": true|false}` tanpa skor atau identitas.
-
-### F-07 Hapus data dengan kode hapus — Must
-**Story:** Sebagai pengguna, saya ingin menghapus data wajah saya kapan saja.
-- **Given** enroll berhasil, **When** respons dikirim, **Then** respons berisi `delete_code` satu kali (≥ 128 bit entropi, mis. 26 karakter base32) dan database hanya menyimpan hash-nya.
-- **Given** kode hapus valid, **When** dikirim ke endpoint hapus, **Then** template dihapus permanen (hard delete) dengan HTTP 200.
-- **Given** kode tidak valid, **When** dikirim, **Then** HTTP 404 `delete_code_invalid` tanpa petunjuk tambahan.
-
-### F-08 Hapus data dengan scan wajah — Should
-**Story:** Sebagai pengguna yang kehilangan kode hapus, saya ingin menghapus data dengan memindai wajah.
-- **Given** sesi liveness `delete` lulus dan embedding cocok, **When** diproses, **Then** hanya satu template (yang paling mirip) dihapus.
-- **Given** tidak ada yang cocok, **When** diproses, **Then** HTTP 404 `face_not_found`.
-- Siapa pun yang wajahnya cocok dapat menghapus template tersebut. Ini diterima untuk tujuan testing (lihat bagian 9).
+### F-06, F-07, F-08 — Dihapus (2026-11-21)
+Cek wajah anonim, hapus dengan kode hapus, dan hapus dengan scan wajah digantikan oleh akun berbasis wajah: masuk (F-18) dan hapus dari dashboard (F-21). Lihat ADR-020.
 
 ### F-09 Consent eksplisit — Must
 **Story:** Sebagai pengguna, saya ingin tahu dan menyetujui pemakaian data biometrik saya.
@@ -87,11 +74,11 @@ Prioritas MoSCoW. Semua angka dalam acceptance criteria bertanda `[ASUMSI]` dan 
 
 ### F-11 Rate limiting — Must
 **Story:** Sebagai pemilik, saya ingin endpoint sulit disalahgunakan untuk menebak wajah.
-- **Given** satu IP, **When** melebihi batas per menit (sesi 20, enroll 5, identify 10, hapus 5) `[ASUMSI]`, **Then** HTTP 429 `rate_limited` dengan header `Retry-After`.
+- **Given** satu IP, **When** melebihi batas per menit (sesi 20, enroll 5, login 10) `[ASUMSI]`, **Then** HTTP 429 `rate_limited` dengan header `Retry-After`.
 
-### F-12 Halaman web enroll, cek, dan hapus — Must
+### F-12 Halaman web masuk, daftar, dan dashboard — Must
 **Story:** Sebagai pengguna, saya memakai halaman web sederhana berbahasa Indonesia.
-- **Given** pengguna membuka `/`, `/enroll`, `/check`, atau `/delete` lewat HTTPS, **When** halaman dimuat, **Then** halaman tampil dengan teks dari `lang/id` dan memiliki state loading, error, dan sukses.
+- **Given** pengguna membuka `/`, `/enroll`, atau `/dashboard` lewat HTTPS, **When** halaman dimuat, **Then** halaman tampil dengan teks dari `lang/id` dan memiliki state loading, error, dan sukses.
 - Semua teks UI berbahasa Indonesia (satu bahasa untuk v1).
 
 ### F-13 Konfigurasi lewat env — Must
@@ -122,22 +109,46 @@ Prioritas MoSCoW. Semua angka dalam acceptance criteria bertanda `[ASUMSI]` dan 
 - **Given** kacamata terlihat saat embedding akhir diambil, **When** batas waktu habis, **Then** pemindaian gagal dengan pesan kacamata dan tidak ada data yang dikirim.
 - Deteksi berjalan di browser saja (garis horizontal di batang hidung, ambang `FACE_GLASSES_MAX_EDGE`, 12 `[ASUMSI]`, 0 = mati). Server tidak bisa memeriksanya karena tidak menerima gambar, jadi pemeriksaan ini bisa dilewati. Kacamata tanpa bingkai bisa lolos.
 
+### F-18 Masuk dengan wajah — Must
+**Story:** Sebagai pengguna, saya masuk ke akun cukup dengan wajah.
+- **Given** sesi liveness `login` lulus dan embedding cocok dengan satu akun (similarity ≥ threshold), **When** diproses, **Then** server membuat sesi masuk untuk akun dengan similarity tertinggi, mengganti ID sesi, dan membalas `redirect` ke `/dashboard` tanpa skor.
+- **Given** tidak ada yang cocok, **When** diproses, **Then** HTTP 404 `face_not_found`, tetap belum masuk, dan halaman menawarkan "Daftar" atau "Coba lagi".
+- **Given** enroll berhasil, **When** akun dibuat, **Then** pengguna langsung masuk.
+- **Given** pengguna sudah masuk, **When** membuka `/` atau `/enroll`, **Then** dialihkan ke `/dashboard`. Tamu yang membuka `/dashboard` dialihkan ke `/`.
+
+### F-19 Nama akun — Must
+- **Given** akun belum punya nama, **When** membuka `/dashboard`, **Then** hanya form nama dan hapus data yang tampil, dan absen ditolak.
+- **Given** nama 1–100 karakter, **When** disimpan, **Then** nama tersimpan terenkripsi dan bisa diubah lagi. Nama kosong atau > 100 karakter ditolak dengan pesan Bahasa Indonesia.
+
+### F-20 Absen harian — Must
+- **Given** akun bernama belum absen hari ini (`APP_TIMEZONE`), **When** menekan "Absen sekarang", **Then** satu baris absen dibuat dengan jam saat itu.
+- **Given** akun sudah absen hari ini, **When** menekan lagi, **Then** tidak ada baris baru dan muncul "Anda sudah absen hari ini." Tidak ada batas jam.
+- Dashboard menampilkan status hari ini dan 30 absen terakhir.
+
+### F-21 Hapus riwayat dan hapus akun — Must
+- **Given** pengguna masuk, **When** mengonfirmasi "Hapus semua riwayat absen", **Then** semua absen akun itu dihapus permanen dan akun tetap ada.
+- **Given** pengguna masuk, **When** mengonfirmasi "Hapus akun", **Then** template wajah, nama, dan semua absen dihapus permanen (hard delete), sesi diakhiri, dan pengguna kembali ke `/`.
+- Aksi hanya berlaku untuk akun yang sedang masuk.
+
 ## 6. Alur pengguna utama
-1. **Enroll:** buka `/enroll` → baca dan setujui consent → izinkan kamera → posisikan wajah di lingkaran → cahaya merah/biru/hijau → ikuti tantangan (urutan acak) → berhasil → kode hapus ditampilkan sekali.
-2. **Cek wajah:** buka `/check` → izinkan kamera → posisi dan tantangan → hasil "terdaftar" atau "belum terdaftar".
-3. **Hapus:** buka `/delete` → pilih "pakai kode" atau "scan wajah" → konfirmasi → data terhapus.
+1. **Daftar:** buka `/enroll` → setujui consent → izinkan kamera → posisikan wajah di lingkaran → ikuti tantangan (urutan acak) → akun dibuat dan langsung masuk ke `/dashboard`.
+2. **Masuk:** buka `/` → pindai wajah dan tantangan → cocok: masuk ke `/dashboard`. Tidak cocok: tawaran daftar atau coba lagi.
+3. **Isi nama:** di `/dashboard`, akun baru diminta mengisi nama sebelum bisa absen. Nama bisa diubah kapan saja.
+4. **Absen:** di `/dashboard` → "Absen sekarang" (sekali per hari, jam bebas) → riwayat tampil.
+5. **Hapus data:** di `/dashboard` → "Hapus semua riwayat absen" atau "Hapus akun" → konfirmasi → data terhapus permanen.
 
 ## 7. Kebutuhan non-fungsional
 - **Performa:** lihat M-1 dan M-3. Embedding dihitung di browser dan model dimuat ≤ 10 detik pada koneksi 10 Mbps `[ASUMSI]`.
-- **Keamanan:** sesi liveness satu kali pakai di database, hash kode hapus (`hash_equals`), enkripsi embedding (F-10), rate limiting (F-11), tanpa skor di respons. Batasan: validasi liveness bersifat plausibility check, bukan jaminan anti-spoof.
-- **Privasi:** hanya embedding disimpan, consent eksplisit, hak hapus (F-07, F-08), embedding dan kode hapus tidak masuk log. Tidak ada retensi otomatis (keputusan pemilik: pengguna yang memilih menghapus). `TODO:` kebijakan privasi final.
+- **Keamanan:** sesi liveness satu kali pakai di database, enkripsi embedding dan nama (F-10, F-19), CSRF dan sesi Laravel untuk akun (F-18), rate limiting (F-11), tanpa skor di respons. Batasan: validasi liveness bersifat plausibility check, bukan jaminan anti-spoof.
+- **Privasi:** hanya embedding disimpan, consent eksplisit, hak hapus riwayat dan akun (F-21), embedding dan nama tidak masuk log. Tidak ada retensi otomatis (keputusan pemilik: pengguna yang memilih menghapus). `TODO:` kebijakan privasi final.
 - **Aksesibilitas:** teks instruksi tertulis di setiap tantangan, `prefers-reduced-motion` dihormati, kontras warna WCAG AA, bisa dipakai dengan keyboard untuk tombol dan form.
 - **Platform:** Chrome, Edge, Firefox, dan Safari versi terbaru (desktop, Android, iOS) dengan kamera depan dan HTTPS `[ASUMSI]`. `TODO:` uji nyata di perangkat low-end.
 - **Skala demo:** maksimal 2.000 template (F-13).
 
 ## 8. Out of scope (v1)
 - Package Composer atau library yang didistribusikan.
-- Verifikasi 1:1 dan absensi, login, user_id, panel admin.
+- Panel admin, laporan absen untuk atasan, jadwal/jam kerja, ekspor data.
+- Pindai ulang wajah saat absen (cukup sesi masuk, ADR-020).
 - Analisis pantulan cahaya warna.
 - Retensi atau penghapusan otomatis.
 - Multi-bahasa dan SDK mobile native.
@@ -154,10 +165,10 @@ Prioritas MoSCoW. Semua angka dalam acceptance criteria bertanda `[ASUMSI]` dan 
 | `vercel-php` adalah runtime komunitas, kompatibilitas versi PHP/Laravel belum diverifikasi | Deploy gagal atau berhenti dirawat | Spike di Tahap 0. Jika gagal, ganti hosting (keputusan dicatat di `DECISIONS.md`) |
 | Liveness di browser bisa dipalsukan | Spoofing foto/video | Validasi telemetri server (F-03), tulis batasan di README (F-15) |
 | Dekripsi semua template di setiap request | Latensi dan memori tinggi di serverless | Batas 2.000 template (F-13), ukur dengan M-3 |
-| Identify bisa dipakai untuk menebak wajah | Kebocoran privasi | Tanpa skor, rate limit (F-11) |
+| Login bisa dipakai untuk menebak wajah | Kebocoran privasi | Tanpa skor, rate limit (F-11) |
+| Wajah mirip di atas threshold masuk ke akun orang lain | Absen palsu, akun dihapus orang lain | **Diterima** untuk testing. Kalibrasi threshold (T-034), tulis di README (ADR-020) |
+| Wajah tidak lagi cocok (cahaya, threshold berubah) | Pengguna tidak bisa masuk untuk menghapus akunnya | Pemilik demo menghapus baris dari database (ADR-020) |
 | Lisensi model wajah belum dicek | Konflik lisensi | `TODO:` verifikasi lisensi model `@vladmandic/human` |
-| Absensi butuh identitas dan 1:1, sedangkan v1 anonim | Perubahan desain besar nanti | F-16 menyiapkan kolom. Desain absensi dibahas terpisah |
-| Data bisa dihapus orang lain lewat pindai wajah (F-08) | Pendaftaran seseorang hilang | **Diterima.** Untuk testing cukup daftar ulang. Ditulis di README (ADR-016) |
 | Dua enroll wajah yang sama bersamaan lolos cek duplikat | Template ganda | **Diterima** untuk v1 (vektor tidak bisa diberi unique constraint) (ADR-016) |
 
 **Pertanyaan terbuka**

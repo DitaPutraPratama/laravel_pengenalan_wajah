@@ -31,7 +31,7 @@ it('cleans up expired sessions sometimes', function () {
     config(['face.session.cleanup_lottery' => 1]);
     LivenessSession::query()->create(['token_hash' => str_repeat('a', 64), 'purpose' => 'enroll', 'challenges' => [], 'expires_at' => now()->subMinute()]);
 
-    $this->postJson('/api/face/sessions', ['purpose' => 'identify'])->assertCreated();
+    $this->postJson('/api/face/sessions', ['purpose' => 'login'])->assertCreated();
 
     expect(LivenessSession::query()->count())->toBe(1);
 });

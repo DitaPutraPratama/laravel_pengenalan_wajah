@@ -26,7 +26,7 @@ function startSession(string $purpose): array
     return [$data['session_token'], $data['challenges']];
 }
 
-/** A full, valid scan payload for identify/enroll. Moves the clock so durations are plausible. */
+/** A full, valid scan payload for login/enroll. Moves the clock so durations are plausible. */
 function scanPayload(string $purpose, array $embedding): array
 {
     [$token, $order] = startSession($purpose);

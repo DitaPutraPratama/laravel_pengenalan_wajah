@@ -58,7 +58,6 @@ return [
     'rate_limits' => [
         'sessions' => (int) env('FACE_RATE_SESSIONS', 20),
         'enroll' => (int) env('FACE_RATE_ENROLL', 5),
-        'identify' => (int) env('FACE_RATE_IDENTIFY', 10),
-        'delete' => (int) env('FACE_RATE_DELETE', 5),
+        'login' => (int) env('FACE_RATE_LOGIN', 10),
     ],
 ];

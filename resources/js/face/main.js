@@ -1,4 +1,4 @@
-// Page controllers for /enroll, /check and /delete. Config and text come from data-* on #face-app.
+// Page controllers for / (login) and /enroll. Config and text come from data-* on #face-app.
 import { post } from './api.js';
 import { runScan, ScanError } from './scanner.js';
 
@@ -95,13 +95,38 @@ async function scanAndSend({ cfg, msg, purpose, endpoint, extra = {}, onSuccess,
         show();
         if (!onError?.(code)) {
             const fatal = ['camera_denied', 'camera_not_found', 'model_failed', 'capacity_reached', 'validation_failed'];
-            const action = code === 'session_invalid' ? { ...retry, label: msg.restart } : retry;
+            // A reload also renews an expired CSRF token, not just the liveness session.
+            const restart = { label: msg.restart, onClick: () => window.location.reload() };
+            const action = code === 'session_invalid' ? restart : retry;
             alertBox(errorText(msg, code), fatal.includes(code) ? [] : [action], error.retryAfter ?? 0);
         }
     }
 }
 
 // --- pages ----------------------------------------------------------------------
+
+// Both scans end in a signed-in session; the server says where to go next.
+const goTo = ({ redirect }) => window.location.assign(redirect);
+
+function loginPage(cfg, msg) {
+    $('[data-start]').addEventListener('click', () =>
+        scanAndSend({
+            cfg,
+            msg,
+            purpose: 'login',
+            endpoint: 'login',
+            onSuccess: goTo,
+            onError: (code) => {
+                if (code !== 'face_not_found') return false;
+                alertBox(errorText(msg, code), [
+                    { label: msg.retry, onClick: () => $('[data-start]').click() },
+                    { label: msg.go_enroll, href: '/enroll' },
+                ]);
+                return true;
+            },
+        }),
+    );
+}
 
 function enrollPage(cfg, msg) {
     const consent = $('[data-consent]');
@@ -115,79 +140,14 @@ function enrollPage(cfg, msg) {
             purpose: 'enroll',
             endpoint: 'enroll',
             extra: { consent: consent.checked, consent_version: cfg.consentVersion },
-            onSuccess: ({ delete_code: code }) => showDeleteCode(code),
+            onSuccess: goTo,
             onError: (code) => {
                 if (code !== 'face_already_registered') return false;
-                alertBox(errorText(msg, code), [
-                    { label: msg.home, href: '/' },
-                    { label: msg.go_delete, href: '/delete' },
-                ]);
+                alertBox(errorText(msg, code), [{ label: msg.go_login, href: '/' }]);
                 return true;
             },
         }),
     );
-}
-
-function showDeleteCode(code) {
-    show('success');
-    // Shown once, never stored in localStorage or the URL (docs/DESIGN.md §8).
-    $('[data-code]').textContent = code.match(/.{1,4}/g).join(' ');
-    $('[data-copy]').addEventListener('click', async () => {
-        try {
-            await navigator.clipboard.writeText(code);
-            const note = $('[data-copied]');
-            note.textContent = note.dataset.text;
-        } catch {
-            /* the code stays visible for manual copying */
-        }
-    });
-    const done = $('[data-done]');
-    $('[data-saved]').addEventListener('change', (e) => done.setAttribute('aria-disabled', String(!e.target.checked)));
-    $('[data-success-title]').focus();
-}
-
-function checkPage(cfg, msg) {
-    $('[data-start]').addEventListener('click', () =>
-        scanAndSend({
-            cfg,
-            msg,
-            purpose: 'identify',
-            endpoint: 'identify',
-            onSuccess: ({ registered }) => show(registered ? 'registered' : 'not-registered'),
-        }),
-    );
-}
-
-function deletePage(cfg, msg) {
-    const form = $('[data-section="code"]');
-    const input = $('[data-code-input]');
-    const confirm = $('[data-confirm]');
-
-    form.addEventListener('submit', (event) => {
-        event.preventDefault();
-        if (input.value.replace(/[\s-]/g, '') === '') return input.focus();
-        hideAlert();
-        show('confirm');
-        confirm.focus();
-    });
-
-    $('[data-cancel]').addEventListener('click', () => {
-        show('code');
-        input.focus();
-    });
-
-    confirm.addEventListener('click', async () => {
-        confirm.disabled = true;
-        const original = confirm.textContent;
-        confirm.textContent = msg.deleting;
-        const result = await post('delete/code', { delete_code: input.value });
-        confirm.disabled = false;
-        confirm.textContent = original;
-
-        if (result.ok) return show('done');
-        show('code');
-        alertBox(errorText(msg, result.code), [], result.retryAfter ?? 0);
-    });
 }
 
 /** Header toggle: flips light/dark and remembers the choice (the head script applies it on load). */
@@ -236,6 +196,6 @@ if (root) {
         glassesMaxEdge: Number(d.glassesMaxEdge),
     };
     const msg = JSON.parse(d.messages);
-    const pages = { enroll: enrollPage, check: checkPage, delete: deletePage };
+    const pages = { login: loginPage, enroll: enrollPage };
     pages[d.page]?.(cfg, msg);
 }
