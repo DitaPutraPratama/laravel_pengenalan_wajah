@@ -133,3 +133,11 @@ Status: Diterima / Diterima, menunggu verifikasi / Digantikan.
 - **Keputusan:** Tidak ada perlindungan tambahan terhadap (a) penghapusan data oleh orang lain lewat pindai wajah (F-08), dan (b) dua enroll wajah yang sama bersamaan. Satu threshold untuk enroll, cek, dan hapus. Jika data seseorang terhapus, ia cukup mendaftar ulang.
 - **Alternatif:** Threshold hapus lebih ketat (`FACE_DELETE_THRESHOLD`), flag config untuk mematikan F-08, atau verifikasi tambahan.
 - **Konsekuensi:** Tidak cocok untuk data nyata. Risiko ditulis di README. Ditinjau ulang bila kode ini dipakai sebagai dasar HRIS (ADR-002).
+
+## ADR-017 — Tooling: Laravel 13, Pest, Vitest, ESLint, tanpa Tailwind
+- **Tanggal:** 2026-11-20
+- **Status:** Diterima, menunggu verifikasi (T-003)
+- **Konteks:** T-001 dan T-002 butuh skeleton dan tooling. `composer create-project` saat ini menghasilkan Laravel 13 (butuh PHP ≥ 8.3), yang masih memenuhi ADR-010. Skeleton bawaan menyertakan Tailwind dan font Bunny.
+- **Keputusan:** Laravel 13 dengan PHP ≥ 8.3. Dev dependency: `pestphp/pest` + `pestphp/pest-plugin-laravel` (test PHP), `vitest` (test JS), `eslint` + `@eslint/js` + `globals` (lint JS). Pint memakai preset `laravel` + `declare_strict_types`. Tailwind dan font Bunny dihapus. Token warna dari `docs/DESIGN.md` ditulis sebagai CSS variable di `resources/css/app.css`.
+- **Alternatif:** PHPUnit murni (bawaan), Tailwind. Tailwind tidak dipilih karena DESIGN.md hanya butuh beberapa token dan melarang font eksternal.
+- **Konsekuensi:** Jika `vercel-php@0.9.0` tidak menyediakan PHP ≥ 8.3, turunkan ke Laravel 12 di T-003 dan ganti ADR ini.
