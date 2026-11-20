@@ -118,6 +118,7 @@ npm run lint      # ESLint
 - Pencocokan membaca semua template di PHP, cocok untuk beberapa ribu wajah. Batas demo 2.000.
 - Dua pendaftaran wajah yang sama pada waktu bersamaan bisa sama-sama lolos (ADR-016).
 - Mengganti `APP_KEY` membuat semua embedding tersimpan tidak bisa dibaca lagi.
+- Larangan kacamata (F-17) hanya dicek di browser dengan heuristik garis bingkai di batang hidung. Kacamata tanpa bingkai bisa lolos, dan klien yang dimodifikasi bisa melewatinya. Atur kepekaan dengan `FACE_GLASSES_MAX_EDGE` (0 = mati).
 - Belum dibuat: efek cahaya merah/biru/hijau (F-04) dan hapus lewat pindai wajah (F-08).
 
 ## Privasi

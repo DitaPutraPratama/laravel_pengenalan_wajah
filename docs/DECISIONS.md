@@ -154,3 +154,11 @@ Status: Diterima / Diterima, menunggu verifikasi / Digantikan.
   - Penyederhanaan dibanding `docs/ARCHITECTURE.md`: JS digabung jadi `geometry.js`, `liveness.js`, `scanner.js`, `api.js`, `main.js`. Halaman memakai `Route::view` (tanpa `PageController`). Kode hapus dicari lewat hash di index unik, jadi `hash_equals` tidak dipakai. Tabel `users`, `password_reset_tokens`, dan `jobs` bawaan dihapus (ADR-002, DATABASE.md).
 - **Alternatif:** Memuat Human dari CDN lewat `<script>` (CSP lebih longgar, tanpa bundling), atau memakai fungsi `human.match` bawaan (metrik non-cosine, tidak cocok dengan pencocokan di PHP).
 - **Konsekuensi:** Threshold harus dikalibrasi dengan wajah nyata sebelum demo dipakai (T-034). Arah toleh dan ambang EAR perlu dicek di perangkat nyata (T-004).
+
+## ADR-019 — Deteksi kacamata heuristik di browser
+- **Tanggal:** 2026-11-20
+- **Status:** Diterima, menunggu kalibrasi di perangkat nyata
+- **Konteks:** Pemilik meminta pengguna tidak boleh memakai kacamata (F-17). `@vladmandic/human` tidak punya klasifikasi kacamata.
+- **Keputusan:** Potong area batang hidung dari mesh (tengah antara sudut mata dalam 133 dan 362, dari atas titik 168 sampai titik 197), perkecil ke 32×24 grayscale di canvas memori, lalu ambil nilai absolut terbesar dari rata-rata baris `g[y+1] − g[y−1]`. Jika melebihi `FACE_GLASSES_MAX_EDGE` (12 `[ASUMSI]`), wajah dianggap berkacamata. Dicek saat posisi wajah dan saat embedding akhir. Crop tidak pernah disimpan atau dikirim.
+- **Alternatif:** Model klasifikasi kacamata tambahan (dependensi dan unduhan baru, belum ada yang jelas lisensinya). Pemeriksaan di server (mustahil, server tidak menerima gambar).
+- **Konsekuensi:** Hanya di klien, jadi bisa dilewati. Kacamata tanpa bingkai, bingkai tipis berwarna kulit, atau bayangan kuat di dahi bisa salah terbaca. Ambang perlu dikalibrasi dengan wajah nyata.

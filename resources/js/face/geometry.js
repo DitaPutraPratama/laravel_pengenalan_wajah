@@ -46,3 +46,38 @@ export function circleStatus(boxes, videoWidth, videoHeight, { minRatio, maxRati
     const offset = Math.hypot(x + w / 2 - videoWidth / 2, y + h / 2 - videoHeight / 2);
     return offset > side * 0.15 ? 'off_center' : 'ok';
 }
+
+// Nose bridge between the eyes: inner eye corners, glabella (168), and below the eyes (197).
+const INNER_CORNERS = [133, 362];
+const BRIDGE_TOP = 168;
+const BRIDGE_BOTTOM = 197;
+
+/**
+ * Crop [x, y, w, h] over the nose bridge, where an eyeglass frame crosses the face.
+ * Middle half between the inner eye corners (no lashes), from above the glabella to below the eyes.
+ */
+export function bridgeRect(mesh) {
+    const [a, b] = INNER_CORNERS.map((i) => mesh[i][0]);
+    const span = Math.abs(b - a);
+    const top = mesh[BRIDGE_TOP][1];
+    const bottom = mesh[BRIDGE_BOTTOM][1];
+    const y = top - (bottom - top) * 0.5;
+
+    return [Math.min(a, b) + span * 0.25, y, span * 0.5, bottom - y];
+}
+
+/**
+ * Strongest horizontal edge in a grayscale crop (row-major, 0–255): the largest
+ * |row mean of g[y+1] − g[y−1]|. A glasses bridge is a bar across the whole width, so its
+ * edge survives the row mean; skin shading is gentle and noise averages out.
+ */
+export function bridgeEdge(gray, width, height) {
+    let max = 0;
+    for (let y = 1; y < height - 1; y++) {
+        let sum = 0;
+        for (let x = 0; x < width; x++) sum += gray[(y + 1) * width + x] - gray[(y - 1) * width + x];
+        max = Math.max(max, Math.abs(sum / width));
+    }
+
+    return max;
+}

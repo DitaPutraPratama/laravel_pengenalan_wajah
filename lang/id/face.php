@@ -34,7 +34,7 @@ return [
 
     'enroll' => [
         'title' => 'Daftarkan wajah',
-        'description' => 'Ikuti tiga gerakan di depan kamera.',
+        'description' => 'Lepas kacamata, lalu ikuti tiga gerakan di depan kamera.',
         // TODO: final consent text after legal review (UU PDP, T-038). Bump FACE_CONSENT_VERSION when it changes.
         'consent_text' => 'Pola wajah (angka, bukan foto) disimpan untuk mencegah daftar ganda. Bisa dihapus kapan saja.',
         'consent_label' => 'Saya setuju',
@@ -49,7 +49,7 @@ return [
 
     'check' => [
         'title' => 'Cek wajah',
-        'intro' => 'Pindai wajah untuk melihat apakah sudah terdaftar.',
+        'intro' => 'Lepas kacamata, lalu pindai wajah untuk melihat apakah sudah terdaftar.',
         'start' => 'Mulai pindai',
         'registered' => 'Wajah ini sudah terdaftar.',
         'not_registered' => 'Wajah ini belum terdaftar.',
@@ -81,6 +81,7 @@ return [
             'far' => 'Terlalu jauh, dekatkan',
             'near' => 'Terlalu dekat, mundur sedikit',
             'off_center' => 'Masukkan wajah ke lingkaran',
+            'glasses' => 'Lepas kacamata',
             'ok' => 'Tahan sebentar',
         ],
         'challenge' => [
@@ -101,6 +102,7 @@ return [
             'consent_required' => 'Centang persetujuan dulu.',
             'session_invalid' => 'Sesi habis. Mulai lagi.',
             'liveness_failed' => 'Gerakan tidak terbaca. Coba lagi lebih pelan.',
+            'glasses' => 'Kacamata terdeteksi. Lepas kacamata, lalu coba lagi.',
             'face_already_registered' => 'Wajah ini sudah terdaftar.',
             // Add "atau hapus lewat pindai wajah" once F-08 exists (T-032).
             'delete_code_invalid' => 'Kode tidak ditemukan. Cek lagi kodenya.',

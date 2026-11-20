@@ -47,6 +47,10 @@ return [
         'hold_ms' => (int) env('FACE_CIRCLE_HOLD_MS', 1000),
     ],
 
+    // Browser-only (F-17): largest horizontal edge (0–255) allowed on the nose bridge before the
+    // face counts as wearing glasses. Lower = stricter, 0 = off. [ASUMSI] calibrate on real devices.
+    'glasses_max_edge' => (float) env('FACE_GLASSES_MAX_EDGE', 12),
+
     // Browser-only: frames in a row with EAR below ear_closed that count as closed eyes.
     'blink_closed_frames' => (int) env('FACE_BLINK_CLOSED_FRAMES', 2),
 

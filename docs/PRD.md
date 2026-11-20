@@ -116,6 +116,12 @@ Prioritas MoSCoW. Semua angka dalam acceptance criteria bertanda `[ASUMSI]` dan 
 - **Given** migrasi dijalankan, **When** tabel dibuat, **Then** `face_templates` punya kolom nullable `external_ref` dan `face_liveness_sessions` punya kolom `purpose`.
 - Tidak ada endpoint v1 yang memakai `external_ref`. Verifikasi 1:1 untuk absensi tidak dibangun di v1.
 
+### F-17 Tolak wajah berkacamata — Must
+**Story:** Sebagai pemilik, saya ingin pengguna melepas kacamata agar embedding konsisten antar-pemindaian.
+- **Given** wajah di lingkaran memakai kacamata, **When** halaman memeriksa posisi, **Then** muncul "Lepas kacamata" dan tantangan tidak dimulai.
+- **Given** kacamata terlihat saat embedding akhir diambil, **When** batas waktu habis, **Then** pemindaian gagal dengan pesan kacamata dan tidak ada data yang dikirim.
+- Deteksi berjalan di browser saja (garis horizontal di batang hidung, ambang `FACE_GLASSES_MAX_EDGE`, 12 `[ASUMSI]`, 0 = mati). Server tidak bisa memeriksanya karena tidak menerima gambar, jadi pemeriksaan ini bisa dilewati. Kacamata tanpa bingkai bisa lolos.
+
 ## 6. Alur pengguna utama
 1. **Enroll:** buka `/enroll` → baca dan setujui consent → izinkan kamera → posisikan wajah di lingkaran → cahaya merah/biru/hijau → ikuti tantangan (urutan acak) → berhasil → kode hapus ditampilkan sekali.
 2. **Cek wajah:** buka `/check` → izinkan kamera → posisi dan tantangan → hasil "terdaftar" atau "belum terdaftar".

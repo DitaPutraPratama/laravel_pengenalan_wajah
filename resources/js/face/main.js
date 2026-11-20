@@ -233,6 +233,7 @@ if (root) {
         circleMinRatio: Number(d.circleMinRatio),
         circleMaxRatio: Number(d.circleMaxRatio),
         circleHoldMs: Number(d.circleHoldMs),
+        glassesMaxEdge: Number(d.glassesMaxEdge),
     };
     const msg = JSON.parse(d.messages);
     const pages = { enroll: enrollPage, check: checkPage, delete: deletePage };

@@ -1,6 +1,6 @@
 // Camera + Human + liveness flow shared by /enroll and /check (F-02, F-03).
 import { post } from './api.js';
-import { circleStatus, eyeAspectRatio, userYaw } from './geometry.js';
+import { bridgeEdge, bridgeRect, circleStatus, eyeAspectRatio, userYaw } from './geometry.js';
 import { createChallenge } from './liveness.js';
 
 /** Thrown with a key from lang/id/face.php "js" (camera_denied, liveness_failed, …). */
@@ -15,6 +15,8 @@ export class ScanError extends Error {
 const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 const EMBEDDING_FRAMES = 3;
 const EMBEDDING_TIMEOUT_MS = 5000;
+const BRIDGE_W = 32;
+const BRIDGE_H = 24;
 
 let humanPromise = null;
 
@@ -51,6 +53,25 @@ function loadHuman(cfg) {
     });
 
     return humanPromise;
+}
+
+let bridgeCtx = null;
+
+/** True when an eyeglass frame crosses the nose bridge (F-17). The tiny crop never leaves memory. */
+function wearsGlasses(video, mesh, maxEdge) {
+    if (!maxEdge) return false;
+
+    bridgeCtx ??= Object.assign(document.createElement('canvas'), { width: BRIDGE_W, height: BRIDGE_H })
+        .getContext('2d', { willReadFrequently: true });
+    const [x, y, w, h] = bridgeRect(mesh);
+    bridgeCtx.drawImage(video, x, y, w, h, 0, 0, BRIDGE_W, BRIDGE_H);
+    const { data } = bridgeCtx.getImageData(0, 0, BRIDGE_W, BRIDGE_H);
+    const gray = new Float32Array(BRIDGE_W * BRIDGE_H);
+    for (let i = 0; i < gray.length; i++) {
+        gray[i] = 0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2];
+    }
+
+    return bridgeEdge(gray, BRIDGE_W, BRIDGE_H) > maxEdge;
 }
 
 async function startCamera(video) {
@@ -99,13 +120,14 @@ export async function runScan({ cfg, msg, purpose, ui }) {
     const stopCamera = await startCamera(ui.video);
 
     try {
-        const detect = async (withEmbedding = false) => {
-            const result = await human.detect(ui.video, { face: { description: { enabled: withEmbedding } } });
+        const detect = async ({ embedding = false, glasses = false } = {}) => {
+            const result = await human.detect(ui.video, { face: { description: { enabled: embedding } } });
             return result.face.map((face) => ({
                 box: face.box,
                 ear: eyeAspectRatio(face.mesh),
                 yaw: userYaw(face.mesh, face.rotation?.angle?.yaw ?? 0),
                 embedding: face.embedding,
+                glasses: glasses && result.face.length === 1 && wearsGlasses(ui.video, face.mesh, cfg.glassesMaxEdge),
             }));
         };
 
@@ -139,8 +161,9 @@ async function waitForPosition({ cfg, msg, ui, detect }) {
     let okSince = null;
 
     for (;;) {
-        const faces = await detect();
-        const status = circleStatus(faces.map((f) => f.box), ui.video.videoWidth, ui.video.videoHeight, limits);
+        const faces = await detect({ glasses: true });
+        let status = circleStatus(faces.map((f) => f.box), ui.video.videoWidth, ui.video.videoHeight, limits);
+        if (status === 'ok' && faces[0].glasses) status = 'glasses';
         ui.circleOk(status === 'ok');
         ui.instruction(msg.position[status]);
 
@@ -169,17 +192,22 @@ async function runChallenge(type, cfg, detect) {
     }
 }
 
-/** Averages a few frontal embeddings for a steadier result. */
+/** Averages a few frontal embeddings for a steadier result. Frames with glasses do not count. */
 async function captureEmbedding(cfg, detect) {
     const samples = [];
     const started = performance.now();
+    let glassesSeen = false;
 
     while (samples.length < EMBEDDING_FRAMES) {
-        if (performance.now() - started > EMBEDDING_TIMEOUT_MS) throw new ScanError('liveness_failed');
+        if (performance.now() - started > EMBEDDING_TIMEOUT_MS) {
+            throw new ScanError(glassesSeen ? 'glasses' : 'liveness_failed');
+        }
 
-        const faces = await detect(true);
+        const faces = await detect({ embedding: true, glasses: true });
         const face = faces.length === 1 ? faces[0] : null;
-        if (face?.embedding?.length === cfg.embeddingDim && Math.abs(face.yaw) <= cfg.yawReturn) {
+        if (face?.glasses) {
+            glassesSeen = true;
+        } else if (face?.embedding?.length === cfg.embeddingDim && Math.abs(face.yaw) <= cfg.yawReturn) {
             samples.push(face.embedding);
         }
         await nextFrame();

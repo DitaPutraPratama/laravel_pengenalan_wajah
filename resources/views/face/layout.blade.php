@@ -41,6 +41,7 @@
         data-circle-min-ratio="{{ config('face.circle.min_ratio') }}"
         data-circle-max-ratio="{{ config('face.circle.max_ratio') }}"
         data-circle-hold-ms="{{ config('face.circle.hold_ms') }}"
+        data-glasses-max-edge="{{ config('face.glasses_max_edge') }}"
         data-messages="{{ json_encode(__('face.js')) }}">
         @yield('content')
     </main>
