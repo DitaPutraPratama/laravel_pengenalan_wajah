@@ -105,12 +105,13 @@ npm run lint      # ESLint
    - `APP_KEY` (buat dengan `php artisan key:generate --show`)
    - `APP_URL`
    - `DB_CONNECTION=pgsql` dan `DB_URL`
+   - untuk Neon: `PGOPTIONS=endpoint=<endpoint-id>` (bagian pertama host, misalnya `ep-xxx-123`). `libpq` di `vercel-php` belum mendukung SNI, jadi tanpa ini koneksi ditolak dengan pesan "Endpoint ID is not specified".
    - semua variabel `FACE_*`
 4. Jalankan migrasi dari komputer Anda:
    ```bash
    DB_CONNECTION=pgsql DB_URL="<connection-string>" php artisan migrate --force
    ```
-5. Saat ini `vercel.json` memakai session cookie dan cache di memori, supaya halaman bisa tampil tanpa database. Setelah database tersedia, ganti `SESSION_DRIVER` dan `CACHE_STORE` di `vercel.json` ke `database` (ADR-009).
+5. `vercel.json` menyimpan session dan cache di database (ADR-009), jadi langkah 2–4 wajib selesai sebelum fitur wajah bisa dipakai.
 
 ## Batasan
 - Pemeriksaan gerakan ini buatan sendiri dan tidak setara SDK liveness komersial. Server hanya memeriksa kewajaran data dari browser, jadi foto atau video yang dibuat dengan cermat masih bisa lolos. Jangan pakai untuk keperluan finansial atau berisiko tinggi tanpa penguatan.
