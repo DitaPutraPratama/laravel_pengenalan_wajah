@@ -18,7 +18,7 @@ return [
 
     'footer' => [
         // TODO: link the final privacy policy after legal review (T-038).
-        'privacy' => 'Foto tidak disimpan. Yang disimpan hanya pola wajah dalam bentuk angka, dan bisa Anda hapus.',
+        'privacy' => 'Tidak ada foto yang disimpan.',
     ],
 
     'home' => [
@@ -34,10 +34,10 @@ return [
 
     'enroll' => [
         'title' => 'Daftarkan wajah',
-        'description' => 'Setujui, lalu ikuti tiga gerakan di depan kamera.',
+        'description' => 'Ikuti tiga gerakan di depan kamera.',
         // TODO: final consent text after legal review (UU PDP, T-038). Bump FACE_CONSENT_VERSION when it changes.
-        'consent_text' => 'Kami menyimpan pola wajah Anda (angka, bukan foto) agar satu wajah tidak terdaftar dua kali. Anda bisa menghapusnya kapan saja dengan kode hapus.',
-        'consent_label' => 'Saya setuju pola wajah saya disimpan.',
+        'consent_text' => 'Pola wajah (angka, bukan foto) disimpan untuk mencegah daftar ganda. Bisa dihapus kapan saja.',
+        'consent_label' => 'Saya setuju',
         'start' => 'Mulai pindai',
         'success_title' => 'Wajah terdaftar',
         'success_text' => 'Simpan kode hapus ini. Kode hanya muncul sekali.',
@@ -68,8 +68,6 @@ return [
         'success' => 'Data wajah sudah dihapus.',
         'back_home' => 'Ke Beranda',
     ],
-
-    'camera_explain' => 'Perlu izin kamera depan.',
 
     'js' => [
         'loading' => 'Memuat pemindai…',

@@ -12,7 +12,6 @@
 
         <section data-section="consent">
             <p>{{ __('face.enroll.consent_text') }}</p>
-            <p class="muted">{{ __('face.camera_explain') }}</p>
             <label class="check">
                 <input type="checkbox" data-consent>
                 <span>{{ __('face.enroll.consent_label') }}</span>

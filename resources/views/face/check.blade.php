@@ -11,7 +11,6 @@
         </div>
 
         <section data-section="intro">
-            <p class="muted">{{ __('face.camera_explain') }}</p>
             <button type="button" class="button" data-start>{{ __('face.check.start') }}</button>
         </section>
 
