@@ -19,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Behind Vercel (TRUSTED_PROXIES=* in vercel.json) this gives Laravel the real
+        // https scheme and client IP. Unset elsewhere, so X-Forwarded-* is ignored.
+        $middleware->trustProxies(at: env('TRUSTED_PROXIES'));
         $middleware->append(SecurityHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
