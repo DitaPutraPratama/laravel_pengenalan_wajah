@@ -1,4 +1,4 @@
-// Page controllers for / (login) and /enroll. Config and text come from data-* on #face-app.
+// Page controllers for / (login), /enroll and /dashboard (attendance). Config and text come from data-* on #face-app.
 import { post } from './api.js';
 import { runScan, ScanError } from './scanner.js';
 
@@ -150,6 +150,27 @@ function enrollPage(cfg, msg) {
     );
 }
 
+/** Attendance: a photo-only scan (no challenges) checked 1:1 against the signed-in account. */
+function dashboardPage(cfg, msg) {
+    const start = $('[data-start]');
+    if (!start) return; // no name yet, or already attended today
+
+    start.addEventListener('click', () =>
+        scanAndSend({
+            cfg,
+            msg,
+            purpose: null,
+            endpoint: 'attendance',
+            onSuccess: goTo,
+            onError: (code) => {
+                if (code !== 'face_not_found') return false;
+                alertBox(msg.errors.face_mismatch, [{ label: msg.retry, onClick: () => start.click() }]);
+                return true;
+            },
+        }),
+    );
+}
+
 /** Header toggle: flips light/dark and remembers the choice (the head script applies it on load). */
 function themeToggle() {
     const button = document.querySelector('[data-theme-toggle]');
@@ -196,6 +217,6 @@ if (root) {
         glassesMaxEdge: Number(d.glassesMaxEdge),
     };
     const msg = JSON.parse(d.messages);
-    const pages = { login: loginPage, enroll: enrollPage };
+    const pages = { login: loginPage, enroll: enrollPage, dashboard: dashboardPage };
     pages[d.page]?.(cfg, msg);
 }

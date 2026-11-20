@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\FaceErrorCode;
 use App\Exceptions\Face\FaceException;
 use App\Http\Middleware\SecurityHeaders;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -43,8 +44,8 @@ return Application::configure(basePath: dirname(__DIR__))
                         array_keys($e->errors()),
                     ))),
                 ]),
-                // Page open longer than SESSION_LIFETIME: the browser reloads to get a fresh CSRF token.
-                $e->getPrevious() instanceof TokenMismatchException => FaceException::response(FaceErrorCode::SessionInvalid),
+                // Signed out or page open longer than SESSION_LIFETIME: the browser reloads (fresh CSRF token, or the login page).
+                $e->getPrevious() instanceof TokenMismatchException, $e instanceof AuthenticationException => FaceException::response(FaceErrorCode::SessionInvalid),
                 $e instanceof ThrottleRequestsException => FaceException::response(FaceErrorCode::RateLimited, [
                     'retry_after' => (int) ($e->getHeaders()['Retry-After'] ?? 60),
                 ])->withHeaders($e->getHeaders()),

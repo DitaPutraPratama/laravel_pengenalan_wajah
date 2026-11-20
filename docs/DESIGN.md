@@ -47,7 +47,9 @@ Desain sengaja polos. Tujuannya satu: pengguna paham apa yang harus dilakukan di
 | State | Tampilan | Teks utama |
 |---|---|---|
 | Nama kosong | Judul "Isi nama Anda", form nama dengan tombol utama, bagian hapus data. Absen dan riwayat tidak tampil | "Isi nama dulu sebelum absen." |
-| Belum absen hari ini | "Halo, {nama}", tombol utama "Absen sekarang" | "Absen sekali sehari, jam bebas." |
+| Belum absen hari ini | "Halo, {nama}", penjelasan singkat, tombol utama "Absen sekarang" | "Kamera akan mengambil foto wajah Anda untuk dicocokkan. Lepas kacamata." |
+| Absen: kamera | `CameraCircle` + `InstructionText` seperti 2.1, tanpa `ProgressSteps` dan tanpa tantangan. Foto diambil otomatis saat wajah pas di lingkaran | "Lihat ke depan" |
+| Absen: tidak cocok | `AlertBox` + "Coba lagi" | "Wajah tidak cocok dengan akun ini. Coba lagi dengan cahaya lebih terang dan wajah menghadap kamera." |
 | Sudah absen hari ini | Teks status menggantikan tombol | "Sudah absen pukul 08.12" |
 | Riwayat | Daftar 30 absen terakhir: hari, tanggal, jam | Kosong: "Belum ada absen." |
 | Ubah nama | Form nama terisi, tombol outline | "Nama tersimpan." |

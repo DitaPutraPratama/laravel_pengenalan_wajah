@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Face\AccountController;
+use App\Http\Controllers\Face\AttendController;
 use App\Http\Controllers\Face\EnrollController;
 use App\Http\Controllers\Face\LoginController;
 use App\Http\Controllers\Face\SessionController;
@@ -18,7 +19,6 @@ Route::middleware('guest')->group(function (): void {
 Route::middleware('auth')->group(function (): void {
     Route::get('/dashboard', [AccountController::class, 'show'])->name('face.dashboard');
     Route::put('/account/name', [AccountController::class, 'updateName'])->name('face.name');
-    Route::post('/attendance', [AccountController::class, 'attend'])->name('face.attend');
     Route::delete('/attendance', [AccountController::class, 'clearAttendance'])->name('face.attendance.clear');
     Route::delete('/account', [AccountController::class, 'destroy'])->name('face.account.destroy');
     Route::post('/logout', [AccountController::class, 'logout'])->name('face.logout');
@@ -29,4 +29,5 @@ Route::prefix('api/face')->name('face.api.')->middleware(EnsureFaceConfigured::c
     Route::post('sessions', SessionController::class)->middleware('throttle:face-sessions')->name('sessions');
     Route::post('enroll', EnrollController::class)->middleware('throttle:face-enroll')->name('enroll');
     Route::post('login', LoginController::class)->middleware('throttle:face-login')->name('login');
+    Route::post('attendance', AttendController::class)->middleware(['auth', 'throttle:face-attend'])->name('attendance');
 });

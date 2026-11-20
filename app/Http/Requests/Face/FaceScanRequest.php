@@ -12,11 +12,7 @@ class FaceScanRequest extends FormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
-        $dim = (int) config('face.embedding_dim');
-
-        return [
-            'embedding' => ['required', 'array', 'list', "size:{$dim}"],
-            'embedding.*' => ['required', 'numeric'],
+        return self::embeddingRules() + [
             'liveness' => ['required', 'array'],
             'liveness.session_token' => ['required', 'string', 'max:128'],
             'liveness.challenges' => ['required', 'array', 'list', 'max:10'],
@@ -28,6 +24,17 @@ class FaceScanRequest extends FormRequest
             'liveness.challenges.*.end_yaw' => ['nullable', 'numeric'],
             'liveness.challenges.*.min_ear' => ['nullable', 'numeric'],
             'liveness.challenges.*.max_ear' => ['nullable', 'numeric'],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public static function embeddingRules(): array
+    {
+        $dim = (int) config('face.embedding_dim');
+
+        return [
+            'embedding' => ['required', 'array', 'list', "size:{$dim}"],
+            'embedding.*' => ['required', 'numeric'],
         ];
     }
 }

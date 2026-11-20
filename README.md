@@ -41,13 +41,13 @@ Kalau muncul error "No application encryption key" padahal `.env` sudah benar, c
 2. Browser memuat [Human](https://github.com/vladmandic/human), memastikan wajah ada di lingkaran, lalu meminta pengguna melakukan gerakan sesuai urutan dari server.
 3. Browser mengirim embedding (1024 angka) dan telemetri gerakan ke `/api/face/enroll` (daftar) atau `/api/face/login` (masuk).
 4. Server memeriksa token, kewajaran telemetri, lalu mencocokkan embedding dengan semua template di database (cosine similarity).
-5. Kalau berhasil, server memasukkan akun lewat sesi Laravel biasa (wajah = akun, tanpa password). Di dashboard, form Blade biasa mengurus nama, absen, dan penghapusan data.
+5. Kalau berhasil, server memasukkan akun lewat sesi Laravel biasa (wajah = akun, tanpa password). Di dashboard, absen memakai foto wajah tanpa gerakan (`/api/face/attendance`, dicocokkan 1:1 dengan akun yang masuk), sedangkan form Blade biasa mengurus nama dan penghapusan data.
 
 ## File penting
 | File | Fungsi |
 |---|---|
 | `config/face.php` | Semua pengaturan: threshold, dimensi embedding, URL model, ambang kedip dan toleh, batas template, rate limit |
-| `routes/web.php` | Halaman, form dashboard, dan tiga endpoint JSON `/api/face/{sessions,enroll,login}` (grup web, butuh CSRF) |
+| `routes/web.php` | Halaman, form dashboard, dan empat endpoint JSON `/api/face/{sessions,enroll,login,attendance}` (grup web, butuh CSRF) |
 | `app/Services/Face/FaceTemplateService.php` | Alur enroll dan login, dengan urutan pemeriksaan sesuai `docs/API.md` |
 | `app/Http/Controllers/Face/AccountController.php` | Dashboard: nama, absen, hapus riwayat, hapus akun, keluar |
 | `app/Models/FaceTemplate.php` | Template wajah sekaligus akun (`Authenticatable`), nama terenkripsi |
@@ -120,7 +120,7 @@ npm run lint      # ESLint
 - Dua pendaftaran wajah yang sama pada waktu bersamaan bisa sama-sama lolos (ADR-016).
 - Mengganti `APP_KEY` membuat semua embedding tersimpan tidak bisa dibaca lagi.
 - Larangan kacamata (F-17) hanya dicek di browser dengan heuristik garis bingkai di batang hidung. Kacamata tanpa bingkai bisa lolos, dan klien yang dimodifikasi bisa melewatinya. Atur kepekaan dengan `FACE_GLASSES_MAX_EDGE` (0 = mati).
-- Masuk dengan wajah bukan autentikasi kuat. Wajah yang cukup mirip (di atas threshold) bisa masuk ke akun orang lain, dan foto atau video yang dibuat dengan cermat bisa lolos pemeriksaan gerakan. Absen hanya butuh sesi yang masih aktif, tanpa pindai ulang.
+- Masuk dengan wajah bukan autentikasi kuat. Wajah yang cukup mirip (di atas threshold) bisa masuk ke akun orang lain, dan foto atau video yang dibuat dengan cermat bisa lolos pemeriksaan gerakan. Absen hanya memakai foto wajah tanpa gerakan, dicocokkan dengan akun yang sedang masuk, jadi pada langkah ini foto atau layar berisi wajah pemilik akun bisa lolos (ADR-021).
 - Kalau wajah tidak lagi cocok (cahaya, threshold diubah), pengguna tidak bisa masuk untuk menghapus akunnya. Pemilik aplikasi harus menghapusnya dari database.
 - Belum dibuat: efek cahaya merah/biru/hijau (F-04).
 

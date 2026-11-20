@@ -121,7 +121,8 @@ Cek wajah anonim, hapus dengan kode hapus, dan hapus dengan scan wajah digantika
 - **Given** nama 1–100 karakter, **When** disimpan, **Then** nama tersimpan terenkripsi dan bisa diubah lagi. Nama kosong atau > 100 karakter ditolak dengan pesan Bahasa Indonesia.
 
 ### F-20 Absen harian — Must
-- **Given** akun bernama belum absen hari ini (`APP_TIMEZONE`), **When** menekan "Absen sekarang", **Then** satu baris absen dibuat dengan jam saat itu.
+- **Given** akun bernama belum absen hari ini (`APP_TIMEZONE`), **When** menekan "Absen sekarang", **Then** kamera menyala, foto wajah diambil otomatis saat wajah pas di lingkaran (tanpa kedip atau toleh), dan hanya embedding yang dikirim (ADR-021).
+- **Given** embedding cocok 1:1 dengan wajah akun yang sedang masuk, **When** diproses, **Then** satu baris absen dibuat dengan jam saat itu. Tidak cocok (termasuk wajah akun lain): HTTP 404 `face_not_found` dan tidak ada absen.
 - **Given** akun sudah absen hari ini, **When** menekan lagi, **Then** tidak ada baris baru dan muncul "Anda sudah absen hari ini." Tidak ada batas jam.
 - Dashboard menampilkan status hari ini dan 30 absen terakhir.
 
@@ -148,7 +149,7 @@ Cek wajah anonim, hapus dengan kode hapus, dan hapus dengan scan wajah digantika
 ## 8. Out of scope (v1)
 - Package Composer atau library yang didistribusikan.
 - Panel admin, laporan absen untuk atasan, jadwal/jam kerja, ekspor data.
-- Pindai ulang wajah saat absen (cukup sesi masuk, ADR-020).
+- Tantangan liveness saat absen (cukup foto + sesi masuk, ADR-021).
 - Analisis pantulan cahaya warna.
 - Retensi atau penghapusan otomatis.
 - Multi-bahasa dan SDK mobile native.

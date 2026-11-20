@@ -59,5 +59,6 @@ return [
         'sessions' => (int) env('FACE_RATE_SESSIONS', 20),
         'enroll' => (int) env('FACE_RATE_ENROLL', 5),
         'login' => (int) env('FACE_RATE_LOGIN', 10),
+        'attend' => (int) env('FACE_RATE_ATTEND', 10),
     ],
 ];

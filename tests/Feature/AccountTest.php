@@ -19,8 +19,6 @@ it('asks for a name before attendance and stores it encrypted', function () {
     $this->actingAs($account);
 
     $this->get('/dashboard')->assertOk()->assertSee(__('face.dashboard.name_first'))->assertDontSee(__('face.dashboard.attend'));
-    $this->post('/attendance')->assertRedirect();
-    expect(Attendance::query()->count())->toBe(0);
 
     $this->put('/account/name', ['name' => '  Sari Dewi '])->assertRedirect();
     expect($account->fresh()->name)->toBe('Sari Dewi')
@@ -37,21 +35,6 @@ it('validates the name', function (array $body) {
     'missing' => [[]],
     'too long' => [['name' => str_repeat('a', 101)]],
 ]);
-
-it('records one attendance per day at any time', function () {
-    $this->travelTo('2026-11-20 23:50:00');
-    $account = FaceTemplate::factory()->create(['name' => 'Sari']);
-    $this->actingAs($account);
-
-    $this->post('/attendance')->assertSessionHas('status', __('face.dashboard.attended'));
-    $this->post('/attendance')->assertSessionHas('status', __('face.dashboard.already_attended'));
-    $this->travelTo('2026-11-21 00:05:00');
-    $this->post('/attendance');
-
-    expect($account->attendances()->pluck('date')->map->toDateString()->all())
-        ->toEqualCanonicalizing(['2026-11-20', '2026-11-21']);
-    $this->get('/dashboard')->assertSee('Sudah absen pukul 00.05');
-});
 
 it('clears only the attendance of the signed-in account', function () {
     $other = FaceTemplate::factory()->create(['name' => 'Lain']);

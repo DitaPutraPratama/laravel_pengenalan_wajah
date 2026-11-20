@@ -82,11 +82,12 @@ face-registry/
 | `SessionController` | Membuat sesi liveness (token, urutan tantangan) | F-01 |
 | `EnrollController` | Enroll lewat service, lalu `Auth::login` | F-02, F-05, F-09, F-18 |
 | `LoginController` | Masuk dengan wajah lewat service, lalu `Auth::login` | F-18 |
-| `AccountController` | Dashboard, nama, absen, hapus riwayat, hapus akun, keluar (form Blade biasa) | F-19–F-21 |
+| `AccountController` | Dashboard, nama, hapus riwayat, hapus akun, keluar (form Blade biasa) | F-19, F-21 |
+| `AttendController` | Absen dengan foto wajah, cocok 1:1 dengan akun yang masuk | F-20 |
 | `LivenessSessionService` | Buat, cari, dan konsumsi sesi (sekali pakai). Membersihkan sesi kedaluwarsa secara oportunistik | F-01 |
 | `LivenessValidator` | Validasi telemetri tantangan terhadap sesi dan waktu server | F-03 |
 | `EmbeddingCodec` | Normalisasi L2, pack/unpack float32, enkripsi/dekripsi | F-10 |
-| `FaceMatcher` | Cosine similarity 1:N, membaca template dengan `lazyById` agar memori tetap kecil | F-05, F-18 |
+| `FaceMatcher` | Cosine similarity 1:N (`lazyById`, memori tetap kecil) untuk enroll/login, dan 1:1 untuk absen | F-05, F-18, F-20 |
 | `FaceTemplateService` | Alur lengkap enroll dan login, serta batas jumlah template | F-05, F-13, F-18 |
 | JS `flow.js` | Menjalankan urutan tantangan sesuai server, mengumpulkan telemetri | F-03 |
 | JS `detector.js` | Menghasilkan landmark, yaw, EAR, dan embedding | F-02, F-03 |
@@ -140,7 +141,9 @@ sequenceDiagram
 ```
 
 ### 5.3 Dashboard (F-19, F-20, F-21)
-Form Blade biasa dengan `@csrf` ke `AccountController`: `PUT /account/name`, `POST /attendance` (`firstOrCreate` per tanggal, dijaga index unik), `DELETE /attendance`, `DELETE /account` (cascade ke `face_attendances`), `POST /logout`.
+Form Blade biasa dengan `@csrf` ke `AccountController`: `PUT /account/name`, `DELETE /attendance`, `DELETE /account` (cascade ke `face_attendances`), `POST /logout`.
+
+Absen (ADR-021): `scanner.js` dengan `purpose: null` hanya menunggu posisi wajah lalu mengambil embedding, tanpa sesi liveness. `POST /api/face/attendance` → `AttendController` → `FaceTemplateService::attend` → `FaceMatcher::matches` (1:1 dengan akun yang masuk) → `firstOrCreate` per tanggal (dijaga index unik).
 
 ## 6. Autentikasi dan otorisasi
 - Akun = baris `face_templates` (ADR-020). Guard `web` bawaan Laravel, sesi di tabel `sessions`. Tidak ada password: satu-satunya cara masuk adalah pindai wajah yang lolos liveness dan cocok di atas threshold.

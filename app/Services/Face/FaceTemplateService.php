@@ -7,9 +7,10 @@ namespace App\Services\Face;
 use App\Enums\FaceErrorCode;
 use App\Enums\LivenessPurpose;
 use App\Exceptions\Face\FaceException;
+use App\Models\Attendance;
 use App\Models\FaceTemplate;
 
-/** Enroll and login by face. Check order follows docs/API.md. */
+/** Enroll, login and attendance by face. Check order follows docs/API.md. */
 final class FaceTemplateService
 {
     public function __construct(
@@ -62,6 +63,27 @@ final class FaceTemplateService
 
         return ($id === null ? null : FaceTemplate::query()->find($id))
             ?? throw new FaceException(FaceErrorCode::FaceNotFound);
+    }
+
+    /**
+     * Today's attendance after a 1:1 check against the signed-in account. No liveness (ADR-021):
+     * the session itself came from a login with liveness. Once per day; a repeat returns the same row.
+     *
+     * @param  array<int, float>  $embedding
+     */
+    public function attend(FaceTemplate $account, array $embedding): Attendance
+    {
+        $normalized = $this->codec->normalize($embedding);
+
+        if ($account->name === null) {
+            throw new FaceException(FaceErrorCode::ValidationFailed, ['fields' => ['name']]);
+        }
+
+        if (! $this->matcher->matches($normalized, $account)) {
+            throw new FaceException(FaceErrorCode::FaceNotFound);
+        }
+
+        return $account->attendances()->firstOrCreate(['date' => today()]);
     }
 
     /** @param array{session_token: string, challenges: list<array<string, mixed>>} $liveness */

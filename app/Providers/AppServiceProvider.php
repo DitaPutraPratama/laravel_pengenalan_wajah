@@ -16,7 +16,7 @@ class AppServiceProvider extends ServiceProvider
         // Keep tokens, names and embeddings out of stack traces in the log.
         ini_set('zend.exception_ignore_args', '1');
 
-        foreach (['sessions', 'enroll', 'login'] as $name) {
+        foreach (['sessions', 'enroll', 'login', 'attend'] as $name) {
             RateLimiter::for("face-{$name}", fn (Request $request) => Limit::perMinute((int) config("face.rate_limits.{$name}"))->by($request->ip()));
         }
     }

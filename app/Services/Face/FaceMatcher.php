@@ -7,7 +7,7 @@ namespace App\Services\Face;
 use App\Models\FaceTemplate;
 use Illuminate\Support\Facades\Log;
 
-/** 1:N cosine matching. Similarity scores never leave this class (ADR-011). */
+/** 1:N and 1:1 cosine matching. Similarity scores never leave this class (ADR-011). */
 final class FaceMatcher
 {
     public function __construct(private readonly EmbeddingCodec $codec) {}
@@ -42,6 +42,25 @@ final class FaceMatcher
         }
 
         return $best >= $threshold ? $bestId : null;
+    }
+
+    /**
+     * True when the embedding is the given template's face (1:1, attendance).
+     *
+     * @param  list<float>  $normalized  L2-normalized embedding
+     */
+    public function matches(array $normalized, FaceTemplate $template): bool
+    {
+        if ($template->model_version !== config('face.model_version') || $template->embedding_dim !== $this->codec->dimensions()) {
+            return false;
+        }
+
+        $score = $this->dot($normalized, $this->codec->decrypt($template->embedding));
+        if (config('face.log_similarity')) {
+            Log::debug('face.verify', ['similarity' => round($score, 4)]);
+        }
+
+        return $score >= (float) config('face.match_threshold');
     }
 
     /**

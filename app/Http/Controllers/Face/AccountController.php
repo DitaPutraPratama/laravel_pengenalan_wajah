@@ -33,19 +33,6 @@ class AccountController extends Controller
         return back()->with('status', __('face.dashboard.name_saved'));
     }
 
-    /** Once per day at any time; a second tap the same day changes nothing. */
-    public function attend(Request $request): RedirectResponse
-    {
-        $account = $this->account($request);
-        if ($account->name === null) {
-            return back();
-        }
-
-        $attendance = $account->attendances()->firstOrCreate(['date' => today()]);
-
-        return back()->with('status', __($attendance->wasRecentlyCreated ? 'face.dashboard.attended' : 'face.dashboard.already_attended'));
-    }
-
     public function clearAttendance(Request $request): RedirectResponse
     {
         $this->account($request)->attendances()->delete();

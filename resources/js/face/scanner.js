@@ -1,4 +1,4 @@
-// Camera + Human + liveness flow shared by / (login) and /enroll (F-02, F-03).
+// Camera + Human + liveness flow shared by / (login), /enroll and attendance (F-02, F-03, F-20).
 import { post } from './api.js';
 import { bridgeEdge, bridgeRect, circleStatus, eyeAspectRatio, userYaw } from './geometry.js';
 import { createChallenge } from './liveness.js';
@@ -100,11 +100,12 @@ async function startCamera(video) {
 /**
  * Runs the whole scan and returns the request body for enroll/login:
  * { embedding, liveness: { session_token, challenges } }. No image ever leaves the browser.
+ * With purpose null (attendance, ADR-021) it skips the challenges: position, then { embedding }.
  *
  * @param {object} p
  * @param {object} p.cfg      config from data-* attributes
  * @param {object} p.msg      lang/id/face.php "js"
- * @param {string} p.purpose  enroll | login
+ * @param {?string} p.purpose  enroll | login, or null for a photo-only scan
  * @param {object} p.ui       { video, instruction(text), steps(text), circleOk(bool) }
  */
 export async function runScan({ cfg, msg, purpose, ui }) {
@@ -132,6 +133,11 @@ export async function runScan({ cfg, msg, purpose, ui }) {
         };
 
         await waitForPosition({ cfg, msg, ui, detect });
+
+        if (!purpose) {
+            ui.instruction(msg.hold_still);
+            return { embedding: await captureEmbedding(cfg, detect) };
+        }
 
         // The session starts only now: the server checks durations against its own clock.
         const session = await post('sessions', { purpose });

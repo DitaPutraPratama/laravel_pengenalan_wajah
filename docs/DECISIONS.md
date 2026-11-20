@@ -176,3 +176,11 @@ Status: Diterima / Diterima, menunggu verifikasi / Digantikan.
   - Konfirmasi aksi hapus memakai `<details>` tanpa JavaScript.
 - **Alternatif:** Tabel `users` terpisah dengan relasi ke template (lebih banyak tabel, tanpa manfaat di alur satu wajah satu akun). Pindai ulang wajah setiap absen (lebih kuat, tapi dua kali pindai per hari). Mempertahankan kode hapus sebagai jalur cadangan (pengguna harus menyimpan kode, padahal akun sudah bisa dihapus dari dalam).
 - **Konsekuensi:** Wajah mirip di atas threshold bisa masuk ke akun orang lain, dan liveness browser bisa dipalsukan, jadi ini bukan autentikasi kuat. Jika wajah tidak lagi cocok (cahaya, threshold), pengguna tidak bisa masuk untuk menghapus akunnya. Pemilik demo harus menghapusnya dari database. Kalau absen butuh bukti kehadiran lebih kuat, tambahkan pindai ulang (`purpose=attendance`) pada tombol absen.
+
+## ADR-021 — Absen dengan foto wajah tanpa tantangan, dicocokkan 1:1
+- **Tanggal:** 2026-11-21
+- **Status:** Diterima. Mengganti bagian "absen cukup satu tombol" di ADR-020.
+- **Konteks:** Pemilik ingin absen memakai data wajah yang sudah ada, tanpa kedip dan toleh: cukup ambil foto lalu sistem memverifikasi.
+- **Keputusan:** Tombol "Absen sekarang" membuka kamera. Begitu wajah pas di lingkaran (dan tanpa kacamata), browser mengambil 3 frame, menghitung embedding rata-rata, dan mengirim **hanya embedding** ke `POST /api/face/attendance` (butuh login). Server mencocokkan 1:1 dengan template akun yang sedang masuk (`FaceMatcher::matches`, threshold yang sama, versi model harus sama). Cocok → absen hari ini dicatat. Tidak cocok → 404 `face_not_found`. Tidak ada sesi liveness. Rate limit `FACE_RATE_ATTEND` (10/menit). Foto tidak pernah dikirim atau disimpan.
+- **Alternatif:** Absen dengan tantangan liveness seperti login (lebih kuat terhadap foto cetak, tapi lebih lama). Pencocokan 1:N (lebih lambat dan bisa cocok dengan akun lain).
+- **Konsekuensi:** Pada langkah absen, foto atau layar berisi wajah pemilik akun bisa lolos. Batasnya: orang itu tetap harus memegang sesi login pemilik akun, dan sesi itu hanya didapat lewat login dengan liveness. Kalau perlu lebih ketat, kirim `liveness` dan pakai `purpose=attendance` seperti login.

@@ -19,10 +19,13 @@
                     @if ($today)
                         <p class="result">{{ __('face.dashboard.attended_at', ['time' => $today->created_at->format('H.i')]) }}</p>
                     @else
-                        <form method="post" action="{{ route('face.attend') }}">
-                            @csrf
-                            <button type="submit" class="button">{{ __('face.dashboard.attend') }}</button>
-                        </form>
+                        {{-- Photo-only scan, checked 1:1 against this account (ADR-021). Driven by resources/js/face/main.js. --}}
+                        <div class="stack" data-section="attend">
+                            <p class="muted">{{ __('face.dashboard.attend_hint') }}</p>
+                            <button type="button" class="button" data-start>{{ __('face.dashboard.attend') }}</button>
+                        </div>
+                        @include('face.partials.scanner')
+                        @include('face.partials.alert')
                     @endif
                 </section>
 

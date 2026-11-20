@@ -20,17 +20,17 @@ Endpoint JSON dipakai oleh JavaScript di halaman aplikasi ini sendiri (satu apli
 ```
 - `details` hanya dipakai untuk `validation_failed` (daftar field) dan `rate_limited` (`retry_after`). Untuk error lain `details` kosong, tidak membocorkan alasan internal.
 - **Pagination:** tidak ada. Sengaja tidak ada endpoint yang membuat daftar template.
-- **Rate limit** per IP per menit `[ASUMSI]`: sesi 20, enroll 5, login 10. Melebihi batas: HTTP 429 `rate_limited` dengan header `Retry-After`.
+- **Rate limit** per IP per menit `[ASUMSI]`: sesi 20, enroll 5, login 10, absen 10. Melebihi batas: HTTP 429 `rate_limited` dengan header `Retry-After`.
 
 ## Kode error
 | Kode | HTTP | Arti | Fitur |
 |---|---|---|---|
 | `validation_failed` | 422 | Format input salah (contoh: dimensi embedding tidak sesuai, `consent_version` berbeda dari config) | semua |
 | `consent_required` | 422 | `consent` tidak `true` | F-09 |
-| `session_invalid` | 422 | Token tidak ditemukan, kedaluwarsa, sudah dipakai, atau tujuan tidak cocok. Juga untuk token CSRF kedaluwarsa (halaman perlu dimuat ulang) | F-01 |
+| `session_invalid` | 422 | Token tidak ditemukan, kedaluwarsa, sudah dipakai, atau tujuan tidak cocok. Juga untuk token CSRF kedaluwarsa dan absen tanpa login (halaman perlu dimuat ulang) | F-01 |
 | `liveness_failed` | 422 | Telemetri tidak lolos validasi | F-03 |
 | `face_already_registered` | 409 | Wajah sudah terdaftar saat enroll | F-05 |
-| `face_not_found` | 404 | Tidak ada akun yang wajahnya cocok saat masuk | F-18 |
+| `face_not_found` | 404 | Tidak ada akun yang wajahnya cocok saat masuk, atau wajah tidak cocok dengan akun yang masuk saat absen | F-18, F-20 |
 | `capacity_reached` | 503 | Jumlah template mencapai batas (`FACE_MAX_TEMPLATES`) | F-13 |
 | `rate_limited` | 429 | Melebihi batas permintaan | F-11 |
 | `server_error` | 500 | Kesalahan internal tanpa detail (termasuk konfigurasi wajib yang kosong) | semua |
@@ -110,6 +110,19 @@ Respons 200 (sesi masuk sebagai akun dengan similarity tertinggi di atas thresho
 ```
 Respons tidak memuat skor, jarak, atau identitas. Error: 404 `face_not_found`, 422 `validation_failed` / `session_invalid` / `liveness_failed`, 429 `rate_limited`.
 
+### POST `/api/face/attendance`
+Absen hari ini dengan foto wajah. **Fitur:** F-20. **Auth:** login (sesi Laravel). Tanpa sesi liveness (ADR-021). **Rate limit:** 10/menit.
+
+Request:
+```json
+{ "embedding": [0.0123, "..."] }
+```
+Respons 200 (absen tercatat, atau sudah tercatat hari ini; hasilnya di-flash ke dashboard):
+```json
+{ "data": { "redirect": "https://contoh.test/dashboard" } }
+```
+Urutan pemeriksaan: login (`session_invalid`) → rate limit → `validation_failed` (embedding) → nama terisi (`validation_failed`, `fields: ["name"]`) → cocok 1:1 dengan akun yang masuk (`face_not_found`) → simpan. Respons tidak memuat skor.
+
 ## Route halaman dan form (bukan JSON)
 Form memakai `@csrf`. Rute `guest` mengalihkan akun yang sudah masuk ke `/dashboard`. Rute `auth` mengalihkan tamu ke `/`.
 
@@ -117,9 +130,8 @@ Form memakai `@csrf`. Rute `guest` mengalihkan akun yang sudah masuk ke `/dashbo
 |---|---|---|---|---|
 | GET | `/` | guest | Masuk dengan pindai wajah | F-18 |
 | GET | `/enroll` | guest | Consent dan pendaftaran wajah | F-02, F-09 |
-| GET | `/dashboard` | auth | Nama, tombol absen, riwayat 30 hari terakhir, hapus data | F-19, F-20, F-21 |
+| GET | `/dashboard` | auth | Nama, absen dengan foto wajah (`POST /api/face/attendance`), riwayat 30 hari terakhir, hapus data | F-19, F-20, F-21 |
 | PUT | `/account/name` | auth | Simpan nama (`name` wajib, maks 100) | F-19 |
-| POST | `/attendance` | auth | Absen hari ini. Kedua kalinya di hari yang sama tidak mengubah apa pun. Ditolak diam-diam jika nama belum diisi | F-20 |
 | DELETE | `/attendance` | auth | Hapus semua riwayat absen akun ini | F-21 |
 | DELETE | `/account` | auth | Hapus akun (template, nama, semua absen), lalu keluar | F-21 |
 | POST | `/logout` | auth | Keluar | F-18 |
