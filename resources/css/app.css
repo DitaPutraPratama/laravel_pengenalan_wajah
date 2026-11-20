@@ -251,7 +251,6 @@ main { width: 100%; padding: 24px var(--gutter) 48px; }
 
 .task .button { margin-top: auto; }
 .task p { flex: 1; margin-bottom: 8px; }
-.home-note { margin-top: 24px; }
 
 /* --- components ---------------------------------------------------------------- */
 

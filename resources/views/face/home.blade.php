@@ -28,7 +28,5 @@
                 <a class="button outline" href="{{ route('face.delete') }}">{{ __('face.home.delete') }}</a>
             </section>
         </div>
-
-        <p class="muted home-note">{{ __('face.home.how') }}</p>
     </div>
 @endsection
