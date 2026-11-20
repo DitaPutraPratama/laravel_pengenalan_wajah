@@ -26,8 +26,9 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
-# Vercel CLI link (created by `vercel link`)
+# Vercel CLI link and pulled env (created by `vercel link`)
 /.vercel
+.env.local
 
 # Local-only: agent instructions and working logs
 /CLAUDE.md
