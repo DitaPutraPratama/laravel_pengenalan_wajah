@@ -32,5 +32,11 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="FACE_MATCH_THRESHOLD" value="0.9"/>
+        <env name="FACE_EMBEDDING_DIM" value="8"/>
+        <env name="FACE_MODEL_VERSION" value="test-v1"/>
+        <env name="FACE_MODEL_URL" value="https://models.example.test/human/"/>
+        <env name="FACE_CONSENT_VERSION" value="1.0"/>
+        <env name="FACE_LOG_SIMILARITY" value="false"/>
     </php>
 </phpunit>
